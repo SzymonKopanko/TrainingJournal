@@ -52,4 +52,11 @@ namespace TrainingJournalApi.DTOs
 
         public bool RememberMe { get; set; }
     }
+
+    public class AuthorizeUserDto
+    {
+        [Required(ErrorMessage = "Email jest wymagany")]
+        [EmailAddress(ErrorMessage = "Nieprawidłowy format email")]
+        public string Email { get; set; } = string.Empty;
+    }
 } 

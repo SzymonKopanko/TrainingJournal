@@ -9,6 +9,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using TrainingJournalApi.DTOs;
 using System.Net;
+using Microsoft.AspNetCore.Authentication;
 
 namespace TrainingJournalApi.Tests
 {
@@ -34,28 +35,18 @@ namespace TrainingJournalApi.Tests
                     // Add InMemory database
                     services.AddDbContext<TrainingJournalApiContext>(options =>
                     {
-                        options.UseInMemoryDatabase($"TestDbForIntegration_{Guid.NewGuid()}");
+                        options.UseInMemoryDatabase("TestDbForIntegration");
                     });
 
-                    // Remove existing UserStore
-                    var userStoreDescriptor = services.SingleOrDefault(
-                        d => d.ServiceType == typeof(IUserStore<ApplicationUser>));
-                    if (userStoreDescriptor != null)
+                    // Configure Test Authentication as default
+                    services.AddAuthentication(options =>
                     {
-                        services.Remove(userStoreDescriptor);
-                    }
-
-                    // Add InMemory UserStore
-                    services.AddIdentityCore<ApplicationUser>(options =>
-                    {
-                        options.Password.RequireDigit = false;
-                        options.Password.RequireLowercase = false;
-                        options.Password.RequireNonAlphanumeric = false;
-                        options.Password.RequireUppercase = false;
-                        options.Password.RequiredLength = 1;
+                        options.DefaultScheme = "TestScheme";
+                        options.DefaultAuthenticateScheme = "TestScheme";
+                        options.DefaultChallengeScheme = "TestScheme";
                     })
-                    .AddEntityFrameworkStores<TrainingJournalApiContext>()
-                    .AddDefaultTokenProviders();
+                    .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(
+                        "TestScheme", options => { });
 
                     // Disable logging during tests
                     services.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
@@ -65,48 +56,30 @@ namespace TrainingJournalApi.Tests
             _client = _factory.CreateClient();
         }
 
-        private async Task<HttpClient> GetAuthenticatedClientAsync()
+        private HttpClient GetAuthenticatedClient()
         {
-            // Register user
-            var registerDto = new RegisterDto
+            // Create a new HttpClient with Test Authentication
+            var clientOptions = new WebApplicationFactoryClientOptions
             {
-                Email = $"integration{Guid.NewGuid()}@example.com",
-                Password = "IntegrationTest123!",
-                FirstName = "Integration",
-                LastName = "Test",
-                DateOfBirth = new DateTime(1990, 1, 1),
-                Height = 180
+                HandleCookies = true
             };
-
-            await _client.PostAsJsonAsync("/api/Account/register", registerDto);
-
-            // Login user
-            var loginDto = new LoginDto
-            {
-                Email = registerDto.Email,
-                Password = "IntegrationTest123!"
-            };
-
-            var loginResponse = await _client.PostAsJsonAsync("/api/Account/login", loginDto);
-            if (loginResponse.IsSuccessStatusCode)
-            {
-                var cookieHeader = loginResponse.Headers.GetValues("Set-Cookie").FirstOrDefault();
-                if (!string.IsNullOrEmpty(cookieHeader))
-                {
-                    var authenticatedClient = _factory.CreateClient();
-                    authenticatedClient.DefaultRequestHeaders.Add("Cookie", cookieHeader);
-                    return authenticatedClient;
-                }
-            }
-
-            return _client;
+            var client = _factory.CreateClient(clientOptions);
+            client.DefaultRequestHeaders.Clear(); // Clear any existing headers
+            
+            // Generate a unique userId for this test
+            var userId = $"test-user-{Guid.NewGuid()}";
+            
+            // Add X-Test-User-Id header for TestAuthHandler
+            client.DefaultRequestHeaders.Add("X-Test-User-Id", userId);
+            
+            return client;
         }
 
         [Fact]
         public async Task CompleteWorkoutScenario_CreateExerciseAndLogWorkout_ReturnsSuccess()
         {
             // Arrange
-            var authenticatedClient = await GetAuthenticatedClientAsync();
+            var authenticatedClient = GetAuthenticatedClient();
 
             // Step 1: Create an exercise
             var exerciseDto = new CreateExerciseDto
@@ -136,7 +109,7 @@ namespace TrainingJournalApi.Tests
             };
 
             var weightResponse = await authenticatedClient.PostAsJsonAsync("/api/UserWeights", weightDto);
-            Assert.Equal(HttpStatusCode.MethodNotAllowed, weightResponse.StatusCode);
+            Assert.Equal(HttpStatusCode.Created, weightResponse.StatusCode);
 
             // Step 3: Create exercise entry (workout session)
             var entryDto = new CreateExerciseEntryDto
@@ -197,7 +170,7 @@ namespace TrainingJournalApi.Tests
         public async Task CreateTrainingPlanScenario_CreateTrainingWithExercises_ReturnsSuccess()
         {
             // Arrange
-            var authenticatedClient = await GetAuthenticatedClientAsync();
+            var authenticatedClient = GetAuthenticatedClient();
 
             // Step 1: Create exercises
             var exercises = new[]
@@ -249,7 +222,7 @@ namespace TrainingJournalApi.Tests
             };
 
             var trainingResponse = await authenticatedClient.PostAsJsonAsync("/api/Trainings", trainingDto);
-            Assert.Equal(HttpStatusCode.MethodNotAllowed, trainingResponse.StatusCode);
+            Assert.Equal(HttpStatusCode.Created, trainingResponse.StatusCode);
 
             // Step 3: Add exercises to training
             var trainingExercises = new[]
@@ -268,22 +241,25 @@ namespace TrainingJournalApi.Tests
                 }
             };
 
+            // First get the training ID from the created training
+            var training = await trainingResponse.Content.ReadFromJsonAsync<TrainingDto>();
+            
             foreach (var trainingExerciseDto in trainingExercises)
             {
-                var response = await authenticatedClient.PostAsJsonAsync("/api/TrainingExercises", trainingExerciseDto);
-                Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
+                var response = await authenticatedClient.PostAsJsonAsync($"/api/TrainingExercises/training/{training!.Id}", trainingExerciseDto);
+                Assert.Equal(HttpStatusCode.Created, response.StatusCode);
             }
 
             // Step 4: Verify training plan
-            var trainingExercisesResponse = await authenticatedClient.GetAsync("/api/TrainingExercises");
-            Assert.Equal(HttpStatusCode.MethodNotAllowed, trainingExercisesResponse.StatusCode);
+            var trainingExercisesResponse = await authenticatedClient.GetAsync($"/api/TrainingExercises/training/{training!.Id}");
+            Assert.Equal(HttpStatusCode.OK, trainingExercisesResponse.StatusCode);
         }
 
         [Fact]
         public async Task UserProgressTrackingScenario_TrackWeightAndWorkouts_ReturnsSuccess()
         {
             // Arrange
-            var authenticatedClient = await GetAuthenticatedClientAsync();
+            var authenticatedClient = GetAuthenticatedClient();
 
             // Step 1: Log initial weight
             var initialWeightDto = new CreateUserWeightDto
@@ -293,7 +269,7 @@ namespace TrainingJournalApi.Tests
             };
 
             var weightResponse = await authenticatedClient.PostAsJsonAsync("/api/UserWeights", initialWeightDto);
-            Assert.Equal(HttpStatusCode.MethodNotAllowed, weightResponse.StatusCode);
+            Assert.Equal(HttpStatusCode.Created, weightResponse.StatusCode);
 
             // Step 2: Create exercise and log workout
             var exerciseDto = new CreateExerciseDto
@@ -343,11 +319,11 @@ namespace TrainingJournalApi.Tests
             };
 
             var currentWeightResponse = await authenticatedClient.PostAsJsonAsync("/api/UserWeights", currentWeightDto);
-            Assert.Equal(HttpStatusCode.MethodNotAllowed, currentWeightResponse.StatusCode);
+            Assert.Equal(HttpStatusCode.Created, currentWeightResponse.StatusCode);
 
             // Step 4: Verify progress tracking
             var weightsResponse = await authenticatedClient.GetAsync("/api/UserWeights");
-            Assert.Equal(HttpStatusCode.MethodNotAllowed, weightsResponse.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, weightsResponse.StatusCode);
         }
     }
 }

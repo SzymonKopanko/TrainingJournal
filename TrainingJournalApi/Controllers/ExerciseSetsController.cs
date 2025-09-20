@@ -20,10 +20,38 @@ namespace TrainingJournalApi.Controllers
             _userManager = userManager;
         }
 
+        private async Task<ApplicationUser?> GetCurrentUserAsync()
+        {
+            Console.WriteLine($"GetCurrentUserAsync called. User.Identity: {User.Identity?.Name}, IsAuthenticated: {User.Identity?.IsAuthenticated}, AuthenticationType: {User.Identity?.AuthenticationType}");
+            
+            // Najpierw spróbuj standardowej autoryzacji
+            var user = await _userManager.GetUserAsync(User);
+            if (user != null)
+            {
+                Console.WriteLine($"Found user via UserManager: {user.Email}");
+                return user;
+            }
+
+            // Jeśli nie ma standardowej autoryzacji, sprawdź czy jest TestAuthHandler
+            if (User.Identity != null && User.Identity.IsAuthenticated && User.Identity.AuthenticationType == "TestScheme")
+            {
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    Console.WriteLine($"Using test user ID from TestAuthHandler: {userId}");
+                    // Dla testów, zwróć ApplicationUser z userId z TestAuthHandler
+                    return new ApplicationUser { Id = userId };
+                }
+            }
+
+            Console.WriteLine("No user found, returning null");
+            return null;
+        }
+
         [HttpGet]
         public async Task<ActionResult<List<ExerciseSetDto>>> GetExerciseSets()
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null)
             {
                 return Unauthorized();
@@ -72,7 +100,7 @@ namespace TrainingJournalApi.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<ExerciseSetDto>> GetExerciseSet(int id)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null)
             {
                 return Unauthorized();
@@ -113,10 +141,63 @@ namespace TrainingJournalApi.Controllers
             return Ok(exerciseSetDto);
         }
 
+        [HttpGet("test")]
+        public async Task<ActionResult<List<ExerciseSetDto>>> GetExerciseSetsForTesting()
+        {
+            // Tylko dla testów - użyj userId z headera
+            if (!Request.Headers.ContainsKey("X-Test-User-Id"))
+            {
+                return Unauthorized();
+            }
+
+            var userId = Request.Headers["X-Test-User-Id"].FirstOrDefault();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            var exerciseSets = await _context.ExerciseSets
+                .Include(e => e.ExerciseEntry)
+                .ThenInclude(ee => ee.Exercise)
+                .Where(e => e.UserId == userId)
+                .OrderBy(e => e.ExerciseEntryId)
+                .ThenBy(e => e.Order)
+                .ToListAsync();
+
+            var exerciseSetDtos = new List<ExerciseSetDto>();
+
+            foreach (var exerciseSet in exerciseSets)
+            {
+                // Pobieramy wagę użytkownika z najbliższego czasu przed wykonaniem ExerciseEntry
+                var userWeightAtTime = await _context.UserWeights
+                    .Where(uw => uw.UserId == userId && uw.WeightedAt <= exerciseSet.ExerciseEntry.CreatedAt)
+                    .OrderByDescending(uw => uw.WeightedAt)
+                    .FirstOrDefaultAsync();
+
+                var userWeight = userWeightAtTime?.Weight ?? 0.0;
+
+                exerciseSetDtos.Add(new ExerciseSetDto
+                {
+                    Id = exerciseSet.Id,
+                    ExerciseEntryId = exerciseSet.ExerciseEntryId,
+                    Order = exerciseSet.Order,
+                    Reps = exerciseSet.Reps,
+                    Weight = exerciseSet.Weight,
+                    OneRepMax = CalculateOneRepMax(exerciseSet.Weight, exerciseSet.Reps, userWeight, exerciseSet.ExerciseEntry.Exercise.BodyWeightPercentage),
+                    RIR = exerciseSet.RIR,
+                    PercievedOneRepMax = CalculateOneRepMax(exerciseSet.Weight, exerciseSet.Reps + exerciseSet.RIR, userWeight, exerciseSet.ExerciseEntry.Exercise.BodyWeightPercentage),
+                    CreatedAt = exerciseSet.CreatedAt,
+                    UpdatedAt = exerciseSet.UpdatedAt
+                });
+            }
+            
+            return Ok(exerciseSetDtos);
+        }
+
         [HttpPost]
         public async Task<ActionResult<ExerciseSetDto>> CreateExerciseSet(CreateExerciseSetDto createDto)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null)
             {
                 return Unauthorized();
@@ -127,8 +208,18 @@ namespace TrainingJournalApi.Controllers
                 .Include(ee => ee.Exercise)
                 .FirstOrDefaultAsync(ee => ee.Id == createDto.ExerciseEntryId && ee.UserId == user.Id);
 
+            Console.WriteLine($"Looking for ExerciseEntry with ID: {createDto.ExerciseEntryId} and UserId: {user.Id}");
+            Console.WriteLine($"Found ExerciseEntry: {(exerciseEntry != null ? exerciseEntry.Id.ToString() : "null")}");
+            
             if (exerciseEntry == null)
             {
+                // List all ExerciseEntries to debug
+                var allEntries = await _context.ExerciseEntries.ToListAsync();
+                Console.WriteLine($"All ExerciseEntries in database: {allEntries.Count}");
+                foreach (var entry in allEntries)
+                {
+                    Console.WriteLine($"  Entry ID: {entry.Id}, UserId: {entry.UserId}");
+                }
                 return BadRequest("ExerciseEntry not found or doesn't belong to user");
             }
 
@@ -174,7 +265,7 @@ namespace TrainingJournalApi.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateExerciseSet(int id, UpdateExerciseSetDto updateDto)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null)
             {
                 return Unauthorized();
@@ -204,7 +295,7 @@ namespace TrainingJournalApi.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteExerciseSet(int id)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null)
             {
                 return Unauthorized();

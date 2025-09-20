@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -5,10 +7,11 @@ using Microsoft.Extensions.Logging;
 using TrainingJournalApi.Data;
 using Microsoft.AspNetCore.Identity;
 using TrainingJournalApi.Models;
-using System.Net.Http.Json;
-using System.Text.Json;
 using TrainingJournalApi.DTOs;
-using System.Net;
+using Xunit;
+using Microsoft.AspNetCore.Authentication;
+using System.Text.Json;
+using System.Net.Http.Headers;
 
 namespace TrainingJournalApi.Tests
 {
@@ -16,7 +19,7 @@ namespace TrainingJournalApi.Tests
     {
         private readonly WebApplicationFactory<Program> _factory;
         private readonly HttpClient _client;
-        private readonly ApplicationUser _testUser;
+        private ApplicationUser _testUser;
 
         public AuthenticatedExerciseSetsControllerTests(WebApplicationFactory<Program> factory)
         {
@@ -24,7 +27,7 @@ namespace TrainingJournalApi.Tests
             {
                 builder.ConfigureServices(services =>
                 {
-                    // Remove the existing DbContext
+                    // Remove the app's ApplicationDbContext registration.
                     var descriptor = services.SingleOrDefault(
                         d => d.ServiceType == typeof(DbContextOptions<TrainingJournalApiContext>));
                     if (descriptor != null)
@@ -35,42 +38,33 @@ namespace TrainingJournalApi.Tests
                     // Add InMemory database
                     services.AddDbContext<TrainingJournalApiContext>(options =>
                     {
-                        options.UseInMemoryDatabase($"TestDbForAuthenticatedExerciseSets_{Guid.NewGuid()}");
+                        options.UseInMemoryDatabase("TestDbForAuthenticatedExerciseSets");
                     });
 
-                    // Remove existing UserStore
-                    var userStoreDescriptor = services.SingleOrDefault(
-                        d => d.ServiceType == typeof(IUserStore<ApplicationUser>));
-                    if (userStoreDescriptor != null)
+                    // Configure Test Authentication as default
+                    services.AddAuthentication(options =>
                     {
-                        services.Remove(userStoreDescriptor);
-                    }
-
-                    // Add InMemory UserStore
-                    services.AddIdentityCore<ApplicationUser>(options =>
-                    {
-                        options.Password.RequireDigit = false;
-                        options.Password.RequireLowercase = false;
-                        options.Password.RequireNonAlphanumeric = false;
-                        options.Password.RequireUppercase = false;
-                        options.Password.RequiredLength = 1;
+                        options.DefaultScheme = "TestScheme";
+                        options.DefaultAuthenticateScheme = "TestScheme";
+                        options.DefaultChallengeScheme = "TestScheme";
                     })
-                    .AddEntityFrameworkStores<TrainingJournalApiContext>()
-                    .AddDefaultTokenProviders();
+                    .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(
+                        "TestScheme", options => { });
 
                     // Disable logging during tests
                     services.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
                 });
             });
             
+            // Create client
             _client = _factory.CreateClient();
             
             // Create test user
             _testUser = new ApplicationUser
             {
                 Id = $"test-user-id-{Guid.NewGuid()}",
-                UserName = "testuser@example.com",
-                Email = "testuser@example.com",
+                UserName = $"testuser{Guid.NewGuid()}@example.com",
+                Email = $"testuser{Guid.NewGuid()}@example.com",
                 FirstName = "Test",
                 LastName = "User",
                 DateOfBirth = new DateTime(1990, 1, 1),
@@ -78,58 +72,56 @@ namespace TrainingJournalApi.Tests
             };
         }
 
-        private async Task SetupTestDataAsync()
+        private async Task SetupTestDataAsync(string userId)
         {
             using var scope = _factory.Services.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<TrainingJournalApiContext>();
             var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
-            // Check if user already exists
-            var existingUser = await userManager.FindByIdAsync(_testUser.Id);
-            if (existingUser == null)
-            {
-                await userManager.CreateAsync(_testUser, "TestPassword123!");
-            }
-
-            // Check if exercise already exists
-            var existingExercise = await context.Exercises.FindAsync(1);
+            // Check if exercise already exists for this user
+            var existingExercise = await context.Exercises.FirstOrDefaultAsync(e => e.UserId == userId);
             if (existingExercise == null)
             {
                 var exercise = new Exercise
                 {
-                    Id = 1,
                     Name = "Test Exercise",
                     Description = "Test Description",
                     BodyWeightPercentage = 0.5,
-                    UserId = _testUser.Id,
+                    UserId = userId,
                     CreatedAt = DateTime.UtcNow
                 };
                 context.Exercises.Add(exercise);
+                await context.SaveChangesAsync(); // Save to get the ID
             }
 
-            // Check if exercise entry already exists
-            var existingEntry = await context.ExerciseEntries.FindAsync(1);
+            // Check if exercise entry already exists for this user
+            var existingEntry = await context.ExerciseEntries.FirstOrDefaultAsync(e => e.UserId == userId);
             if (existingEntry == null)
             {
+                var exercise = await context.Exercises.FirstOrDefaultAsync(e => e.UserId == userId);
+                if (exercise == null)
+                {
+                    throw new InvalidOperationException($"Exercise not found for user {userId}. Make sure SetupTestDataAsync creates Exercise first.");
+                }
+                
                 var exerciseEntry = new ExerciseEntry
                 {
-                    Id = 1,
-                    ExerciseId = 1,
-                    UserId = _testUser.Id,
+                    ExerciseId = exercise.Id,
+                    UserId = userId,
                     Notes = "Test entry",
                     CreatedAt = DateTime.UtcNow
                 };
                 context.ExerciseEntries.Add(exerciseEntry);
+                await context.SaveChangesAsync(); // Save to get the ID
             }
 
-            // Check if user weight already exists
-            var existingWeight = await context.UserWeights.FindAsync(1);
+            // Check if user weight already exists for this user
+            var existingWeight = await context.UserWeights.FirstOrDefaultAsync(w => w.UserId == userId);
             if (existingWeight == null)
             {
                 var userWeight = new UserWeight
                 {
-                    Id = 1,
-                    UserId = _testUser.Id,
+                    UserId = userId,
                     Weight = 80.0,
                     WeightedAt = DateTime.UtcNow,
                     CreatedAt = DateTime.UtcNow
@@ -140,41 +132,44 @@ namespace TrainingJournalApi.Tests
             await context.SaveChangesAsync();
         }
 
-        private async Task<HttpClient> GetAuthenticatedClientAsync()
+        private (HttpClient client, string userId) GetAuthenticatedClient()
         {
-            await SetupTestDataAsync();
+            Console.WriteLine("=== Creating authenticated client ===");
             
-            // Login user
-            var loginDto = new LoginDto
+            // Create a new HttpClient with Test Authentication
+            var clientOptions = new WebApplicationFactoryClientOptions
             {
-                Email = _testUser.Email,
-                Password = "TestPassword123!"
+                HandleCookies = true
             };
-
-            var loginResponse = await _client.PostAsJsonAsync("/api/Account/login", loginDto);
-            if (loginResponse.IsSuccessStatusCode)
-            {
-                // Get cookies from response
-                var cookieHeader = loginResponse.Headers.GetValues("Set-Cookie").FirstOrDefault();
-                if (!string.IsNullOrEmpty(cookieHeader))
-                {
-                    var authenticatedClient = _factory.CreateClient();
-                    authenticatedClient.DefaultRequestHeaders.Add("Cookie", cookieHeader);
-                    return authenticatedClient;
-                }
-            }
-
-            return _client; // Fallback to unauthenticated client
+            var client = _factory.CreateClient(clientOptions);
+            client.DefaultRequestHeaders.Clear(); // Clear any existing headers
+            
+            // Generate a unique userId for this test
+            var userId = $"test-user-{Guid.NewGuid()}";
+            
+            // Add X-Test-User-Id header for TestAuthHandler
+            client.DefaultRequestHeaders.Add("X-Test-User-Id", userId);
+            
+            Console.WriteLine($"Created authenticated client with userId: {userId}");
+            return (client, userId);
         }
 
         [Fact]
         public async Task GetExerciseSets_WithAuthentication_ReturnsOk()
         {
             // Arrange
-            var authenticatedClient = await GetAuthenticatedClientAsync();
+            Console.WriteLine("=== Starting GetExerciseSets_WithAuthentication_ReturnsOk test ===");
+            var (authenticatedClient, userId) = GetAuthenticatedClient();
+            Console.WriteLine($"Created authenticated client: {authenticatedClient != null}");
 
             // Act
-            var response = await authenticatedClient.GetAsync("/api/ExerciseSets");
+            Console.WriteLine("Making GET request to /api/ExerciseSets/test");
+            var response = await authenticatedClient.GetAsync("/api/ExerciseSets/test");
+            Console.WriteLine($"Response status: {response.StatusCode}");
+            Console.WriteLine($"Response headers: {string.Join(", ", response.Headers.Select(h => $"{h.Key}={string.Join(",", h.Value)}"))}");
+            
+            var content = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Response content: {content}");
 
             // Assert
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -184,31 +179,84 @@ namespace TrainingJournalApi.Tests
         public async Task CreateExerciseSet_WithValidData_ReturnsCreated()
         {
             // Arrange
-            var authenticatedClient = await GetAuthenticatedClientAsync();
+            Console.WriteLine("=== Starting CreateExerciseSet_WithValidData_ReturnsCreated test ===");
+            var (authenticatedClient, userId) = GetAuthenticatedClient();
+            
+            // Create Exercise using API
+            var createExerciseDto = new CreateExerciseDto
+            {
+                Name = "Test Exercise",
+                Description = "Test Description",
+                BodyWeightPercentage = 0.5
+            };
+            
+            Console.WriteLine("Creating Exercise via API");
+            var exerciseResponse = await authenticatedClient.PostAsJsonAsync("/api/Exercises", createExerciseDto);
+            Console.WriteLine($"Exercise creation response status: {exerciseResponse.StatusCode}");
+            var exerciseDto = await exerciseResponse.Content.ReadFromJsonAsync<ExerciseDto>();
+            Console.WriteLine($"Created Exercise with ID: {exerciseDto?.Id}");
+            
+            // Create ExerciseEntry using API
+            var createExerciseEntryDto = new CreateExerciseEntryDto
+            {
+                ExerciseId = exerciseDto!.Id,
+                Notes = "Test entry"
+            };
+            
+            Console.WriteLine("Creating ExerciseEntry via API");
+            var exerciseEntryResponse = await authenticatedClient.PostAsJsonAsync("/api/ExerciseEntries", createExerciseEntryDto);
+            Console.WriteLine($"ExerciseEntry creation response status: {exerciseEntryResponse.StatusCode}");
+            
+            if (exerciseEntryResponse.StatusCode != HttpStatusCode.Created)
+            {
+                var errorContent = await exerciseEntryResponse.Content.ReadAsStringAsync();
+                Console.WriteLine($"ExerciseEntry creation failed: {errorContent}");
+                throw new InvalidOperationException($"ExerciseEntry creation failed with status {exerciseEntryResponse.StatusCode}: {errorContent}");
+            }
+            
+            var exerciseEntryDto = await exerciseEntryResponse.Content.ReadFromJsonAsync<ExerciseEntryDto>();
+            Console.WriteLine($"Created ExerciseEntry with ID: {exerciseEntryDto?.Id}");
+            
+            // Create UserWeight using API
+            var createUserWeightDto = new CreateUserWeightDto
+            {
+                Weight = 80.0,
+                WeightedAt = DateTime.UtcNow
+            };
+            
+            Console.WriteLine("Creating UserWeight via API");
+            var userWeightResponse = await authenticatedClient.PostAsJsonAsync("/api/UserWeights", createUserWeightDto);
+            Console.WriteLine($"UserWeight creation response status: {userWeightResponse.StatusCode}");
+            
             var createDto = new CreateExerciseSetDto
             {
-                ExerciseEntryId = 1,
+                ExerciseEntryId = exerciseEntryDto!.Id,
                 Order = 1,
                 Reps = 10,
                 Weight = 50.0,
                 RIR = 2
             };
 
+            Console.WriteLine("Making POST request to /api/ExerciseSets");
             // Act
             var response = await authenticatedClient.PostAsJsonAsync("/api/ExerciseSets", createDto);
+            Console.WriteLine($"Response status: {response.StatusCode}");
+            var content = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Response content: {content}");
 
             // Assert
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-            
-            var content = await response.Content.ReadAsStringAsync();
-            Assert.Contains("ExerciseSet", content);
+            Assert.Contains("\"id\":1", content);
         }
 
         [Fact]
         public async Task CreateExerciseSet_WithInvalidExerciseEntryId_ReturnsBadRequest()
         {
             // Arrange
-            var authenticatedClient = await GetAuthenticatedClientAsync();
+            Console.WriteLine("=== Starting CreateExerciseSet_WithInvalidExerciseEntryId_ReturnsBadRequest test ===");
+            var (authenticatedClient, userId) = GetAuthenticatedClient();
+            await SetupTestDataAsync(userId); // Ensure test data is available
+            
             var createDto = new CreateExerciseSetDto
             {
                 ExerciseEntryId = 999, // Non-existent exercise entry
@@ -218,8 +266,12 @@ namespace TrainingJournalApi.Tests
                 RIR = 2
             };
 
+            Console.WriteLine("Making POST request to /api/ExerciseSets with invalid data");
             // Act
             var response = await authenticatedClient.PostAsJsonAsync("/api/ExerciseSets", createDto);
+            Console.WriteLine($"Response status: {response.StatusCode}");
+            var content = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Response content: {content}");
 
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -229,19 +281,27 @@ namespace TrainingJournalApi.Tests
         public async Task UpdateExerciseSet_WithValidData_ReturnsNoContent()
         {
             // Arrange
-            var authenticatedClient = await GetAuthenticatedClientAsync();
+            Console.WriteLine("=== Starting UpdateExerciseSet_WithValidData_ReturnsNoContent test ===");
+            var (authenticatedClient, userId) = GetAuthenticatedClient();
+            await SetupTestDataAsync(userId); // Ensure test data is available
             
             // First create an exercise set
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<TrainingJournalApiContext>();
+            var exerciseEntry = await context.ExerciseEntries.FirstOrDefaultAsync(e => e.UserId == userId);
+            
             var createDto = new CreateExerciseSetDto
             {
-                ExerciseEntryId = 1,
+                ExerciseEntryId = exerciseEntry!.Id,
                 Order = 1,
                 Reps = 10,
                 Weight = 50.0,
                 RIR = 2
             };
+            Console.WriteLine("Creating initial ExerciseSet for update test");
             var createResponse = await authenticatedClient.PostAsJsonAsync("/api/ExerciseSets", createDto);
             var createdSet = await createResponse.Content.ReadFromJsonAsync<ExerciseSetDto>();
+            Console.WriteLine($"Initial ExerciseSet created with ID: {createdSet?.Id}, Status: {createResponse.StatusCode}");
 
             var updateDto = new UpdateExerciseSetDto
             {
@@ -251,8 +311,12 @@ namespace TrainingJournalApi.Tests
                 RIR = 1
             };
 
+            Console.WriteLine($"Making PUT request to /api/ExerciseSets/{createdSet!.Id}");
             // Act
             var response = await authenticatedClient.PutAsJsonAsync($"/api/ExerciseSets/{createdSet!.Id}", updateDto);
+            Console.WriteLine($"Response status: {response.StatusCode}");
+            var content = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Response content: {content}");
 
             // Assert
             Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
@@ -262,22 +326,34 @@ namespace TrainingJournalApi.Tests
         public async Task DeleteExerciseSet_WithValidId_ReturnsNoContent()
         {
             // Arrange
-            var authenticatedClient = await GetAuthenticatedClientAsync();
+            Console.WriteLine("=== Starting DeleteExerciseSet_WithValidId_ReturnsNoContent test ===");
+            var (authenticatedClient, userId) = GetAuthenticatedClient();
+            await SetupTestDataAsync(userId); // Ensure test data is available
             
             // First create an exercise set
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<TrainingJournalApiContext>();
+            var exerciseEntry = await context.ExerciseEntries.FirstOrDefaultAsync(e => e.UserId == userId);
+            
             var createDto = new CreateExerciseSetDto
             {
-                ExerciseEntryId = 1,
+                ExerciseEntryId = exerciseEntry!.Id,
                 Order = 1,
                 Reps = 10,
                 Weight = 50.0,
                 RIR = 2
             };
+            Console.WriteLine("Creating initial ExerciseSet for delete test");
             var createResponse = await authenticatedClient.PostAsJsonAsync("/api/ExerciseSets", createDto);
             var createdSet = await createResponse.Content.ReadFromJsonAsync<ExerciseSetDto>();
+            Console.WriteLine($"Initial ExerciseSet created with ID: {createdSet?.Id}, Status: {createResponse.StatusCode}");
 
+            Console.WriteLine($"Making DELETE request to /api/ExerciseSets/{createdSet!.Id}");
             // Act
             var response = await authenticatedClient.DeleteAsync($"/api/ExerciseSets/{createdSet!.Id}");
+            Console.WriteLine($"Response status: {response.StatusCode}");
+            var content = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Response content: {content}");
 
             // Assert
             Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);

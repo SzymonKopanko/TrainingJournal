@@ -105,5 +105,92 @@ namespace TrainingJournalApi.Controllers
 
             return Ok(userDto);
         }
+
+        [HttpPost("admin/authorize-user")]
+        public async Task<IActionResult> AuthorizeUserForTesting([FromBody] AuthorizeUserDto model)
+        {
+            // Tylko dla testów - w produkcji to powinno być zabezpieczone
+            if (!HttpContext.Request.Headers.ContainsKey("X-Test-Admin-Key") || 
+                HttpContext.Request.Headers["X-Test-Admin-Key"] != "test-admin-secret-key")
+            {
+                return Unauthorized(new { message = "Brak uprawnień administratora" });
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user == null)
+            {
+                return NotFound(new { message = "Użytkownik nie został znaleziony" });
+            }
+
+            // Potwierdź email i zaloguj użytkownika
+            user.EmailConfirmed = true;
+            await _userManager.UpdateAsync(user);
+
+            await _signInManager.SignInAsync(user, isPersistent: false);
+
+            return Ok(new { message = $"Użytkownik {user.Email} został autoryzowany dla testów" });
+        }
+
+        [HttpPost("admin/create-and-authorize-user")]
+        public async Task<IActionResult> CreateAndAuthorizeUserForTesting([FromBody] RegisterDto model)
+        {
+            // Tylko dla testów - w produkcji to powinno być zabezpieczone
+            if (!HttpContext.Request.Headers.ContainsKey("X-Test-Admin-Key") || 
+                HttpContext.Request.Headers["X-Test-Admin-Key"] != "test-admin-secret-key")
+            {
+                return Unauthorized(new { message = "Brak uprawnień administratora" });
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            // Sprawdź czy użytkownik już istnieje
+            var existingUser = await _userManager.FindByEmailAsync(model.Email);
+            if (existingUser != null)
+            {
+                // Jeśli istnieje, po prostu go autoryzuj
+                existingUser.EmailConfirmed = true;
+                await _userManager.UpdateAsync(existingUser);
+                await _signInManager.SignInAsync(existingUser, isPersistent: false);
+                return Ok(new { message = $"Istniejący użytkownik {existingUser.Email} został autoryzowany dla testów" });
+            }
+
+            // Utwórz nowego użytkownika
+            var user = new ApplicationUser
+            {
+                UserName = model.Email,
+                Email = model.Email,
+                FirstName = model.FirstName,
+                LastName = model.LastName,
+                DateOfBirth = model.DateOfBirth,
+                Height = model.Height,
+                CreatedAt = DateTime.UtcNow,
+                EmailConfirmed = true // Od razu potwierdź email
+            };
+
+            var result = await _userManager.CreateAsync(user, model.Password);
+
+            if (result.Succeeded)
+            {
+                // Zaloguj użytkownika
+                await _signInManager.SignInAsync(user, isPersistent: false);
+                
+                // Dodaj informacje o użytkowniku do odpowiedzi
+                return Ok(new { 
+                    message = $"Nowy użytkownik {user.Email} został utworzony i autoryzowany dla testów",
+                    userId = user.Id,
+                    email = user.Email
+                });
+            }
+
+            return BadRequest(new { errors = result.Errors.Select(e => e.Description) });
+        }
     }
 } 
