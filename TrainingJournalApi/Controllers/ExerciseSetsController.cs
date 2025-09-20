@@ -69,6 +69,161 @@ namespace TrainingJournalApi.Controllers
             return Ok(exerciseSetDtos);
         }
 
+        [HttpGet("{id}")]
+        public async Task<ActionResult<ExerciseSetDto>> GetExerciseSet(int id)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            var exerciseSet = await _context.ExerciseSets
+                .Include(e => e.ExerciseEntry)
+                .ThenInclude(ee => ee.Exercise)
+                .FirstOrDefaultAsync(e => e.Id == id && e.UserId == user.Id);
+
+            if (exerciseSet == null)
+            {
+                return NotFound();
+            }
+
+            // Pobieramy wagę użytkownika z najbliższego czasu przed wykonaniem ExerciseEntry
+            var userWeightAtTime = await _context.UserWeights
+                .Where(uw => uw.UserId == user.Id && uw.WeightedAt <= exerciseSet.ExerciseEntry.CreatedAt)
+                .OrderByDescending(uw => uw.WeightedAt)
+                .FirstOrDefaultAsync();
+
+            var userWeight = userWeightAtTime?.Weight ?? 0.0;
+
+            var exerciseSetDto = new ExerciseSetDto
+            {
+                Id = exerciseSet.Id,
+                ExerciseEntryId = exerciseSet.ExerciseEntryId,
+                Order = exerciseSet.Order,
+                Reps = exerciseSet.Reps,
+                Weight = exerciseSet.Weight,
+                OneRepMax = CalculateOneRepMax(exerciseSet.Weight, exerciseSet.Reps, userWeight, exerciseSet.ExerciseEntry.Exercise.BodyWeightPercentage),
+                RIR = exerciseSet.RIR,
+                PercievedOneRepMax = CalculateOneRepMax(exerciseSet.Weight, exerciseSet.Reps + exerciseSet.RIR, userWeight, exerciseSet.ExerciseEntry.Exercise.BodyWeightPercentage),
+                CreatedAt = exerciseSet.CreatedAt,
+                UpdatedAt = exerciseSet.UpdatedAt
+            };
+
+            return Ok(exerciseSetDto);
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<ExerciseSetDto>> CreateExerciseSet(CreateExerciseSetDto createDto)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            // Sprawdzamy czy ExerciseEntry istnieje i należy do użytkownika
+            var exerciseEntry = await _context.ExerciseEntries
+                .Include(ee => ee.Exercise)
+                .FirstOrDefaultAsync(ee => ee.Id == createDto.ExerciseEntryId && ee.UserId == user.Id);
+
+            if (exerciseEntry == null)
+            {
+                return BadRequest("ExerciseEntry not found or doesn't belong to user");
+            }
+
+            var exerciseSet = new ExerciseSet
+            {
+                ExerciseEntryId = createDto.ExerciseEntryId,
+                UserId = user.Id,
+                Order = createDto.Order,
+                Reps = createDto.Reps,
+                Weight = createDto.Weight,
+                RIR = createDto.RIR,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.ExerciseSets.Add(exerciseSet);
+            await _context.SaveChangesAsync();
+
+            // Pobieramy wagę użytkownika do obliczeń
+            var userWeightAtTime = await _context.UserWeights
+                .Where(uw => uw.UserId == user.Id && uw.WeightedAt <= exerciseSet.CreatedAt)
+                .OrderByDescending(uw => uw.WeightedAt)
+                .FirstOrDefaultAsync();
+
+            var userWeight = userWeightAtTime?.Weight ?? 0.0;
+
+            var exerciseSetDto = new ExerciseSetDto
+            {
+                Id = exerciseSet.Id,
+                ExerciseEntryId = exerciseSet.ExerciseEntryId,
+                Order = exerciseSet.Order,
+                Reps = exerciseSet.Reps,
+                Weight = exerciseSet.Weight,
+                OneRepMax = CalculateOneRepMax(exerciseSet.Weight, exerciseSet.Reps, userWeight, exerciseEntry.Exercise.BodyWeightPercentage),
+                RIR = exerciseSet.RIR,
+                PercievedOneRepMax = CalculateOneRepMax(exerciseSet.Weight, exerciseSet.Reps + exerciseSet.RIR, userWeight, exerciseEntry.Exercise.BodyWeightPercentage),
+                CreatedAt = exerciseSet.CreatedAt,
+                UpdatedAt = exerciseSet.UpdatedAt
+            };
+
+            return CreatedAtAction(nameof(GetExerciseSet), new { id = exerciseSet.Id }, exerciseSetDto);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateExerciseSet(int id, UpdateExerciseSetDto updateDto)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            var exerciseSet = await _context.ExerciseSets
+                .Include(e => e.ExerciseEntry)
+                .ThenInclude(ee => ee.Exercise)
+                .FirstOrDefaultAsync(e => e.Id == id && e.UserId == user.Id);
+
+            if (exerciseSet == null)
+            {
+                return NotFound();
+            }
+
+            exerciseSet.Order = updateDto.Order;
+            exerciseSet.Reps = updateDto.Reps;
+            exerciseSet.Weight = updateDto.Weight;
+            exerciseSet.RIR = updateDto.RIR;
+            exerciseSet.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteExerciseSet(int id)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            var exerciseSet = await _context.ExerciseSets
+                .FirstOrDefaultAsync(e => e.Id == id && e.UserId == user.Id);
+
+            if (exerciseSet == null)
+            {
+                return NotFound();
+            }
+
+            _context.ExerciseSets.Remove(exerciseSet);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
         // Metoda pomocnicza do obliczania 1RM (wzór Brzyckiego z uwzględnieniem masy ciała)
         private static double CalculateOneRepMax(double weight, int reps, double userWeight, double bodyWeightPercentage)
         {
