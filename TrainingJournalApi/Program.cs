@@ -10,7 +10,28 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "TrainingJournal API",
+        Version = "v1",
+        Description = "ASP.NET Core 8.0 API for training journal management with Entity Framework and Identity",
+        Contact = new Microsoft.OpenApi.Models.OpenApiContact
+        {
+            Name = "TrainingJournal API",
+            Email = "skopanko320@gmail.com"
+        }
+    });
+    
+    // Dodaj komentarze XML do dokumentacji
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = System.IO.Path.Combine(System.AppContext.BaseDirectory, xmlFile);
+    if (System.IO.File.Exists(xmlPath))
+    {
+        c.IncludeXmlComments(xmlPath);
+    }
+});
 
 
 builder.Services.AddDbContext<TrainingJournalApiContext>(options =>
@@ -39,6 +60,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.Cookie.HttpOnly = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest; // Działa z HTTP i HTTPS
     options.ExpireTimeSpan = TimeSpan.FromDays(30);
     options.LoginPath = "/api/account/login";
     options.LogoutPath = "/api/account/logout";
@@ -51,7 +73,16 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "TrainingJournal API v1");
+        c.RoutePrefix = "swagger"; // Swagger UI będzie dostępny pod /swagger
+        c.DisplayRequestDuration();
+        c.EnableDeepLinking();
+        c.EnableFilter();
+        c.ShowExtensions();
+        c.EnableValidator();
+    });
 }
 
 app.UseHttpsRedirection();
