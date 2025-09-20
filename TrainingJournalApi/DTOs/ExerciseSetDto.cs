@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace TrainingJournalApi.DTOs
 {
     public class ExerciseSetDto
@@ -16,18 +18,42 @@ namespace TrainingJournalApi.DTOs
 
     public class CreateExerciseSetDto
     {
+        [Required(ErrorMessage = "ID wpisu ćwiczenia jest wymagane")]
         public int ExerciseEntryId { get; set; }
+
+        [Required(ErrorMessage = "Kolejność jest wymagana")]
+        [Range(1, 50, ErrorMessage = "Kolejność musi być między 1 a 50")]
         public int Order { get; set; }
+
+        [Required(ErrorMessage = "Liczba powtórzeń jest wymagana")]
+        [Range(1, 100, ErrorMessage = "Liczba powtórzeń musi być między 1 a 100")]
         public int Reps { get; set; }
+
+        [Required(ErrorMessage = "Ciężar jest wymagany")]
+        [Range(0, 1000, ErrorMessage = "Ciężar musi być między 0 a 1000 kg")]
         public double Weight { get; set; }
+
+        [Required(ErrorMessage = "RIR jest wymagane")]
+        [Range(0, 10, ErrorMessage = "RIR musi być między 0 a 10")]
         public int RIR { get; set; }
     }
 
     public class UpdateExerciseSetDto
     {
+        [Required(ErrorMessage = "Kolejność jest wymagana")]
+        [Range(1, 50, ErrorMessage = "Kolejność musi być między 1 a 50")]
         public int Order { get; set; }
+
+        [Required(ErrorMessage = "Liczba powtórzeń jest wymagana")]
+        [Range(1, 100, ErrorMessage = "Liczba powtórzeń musi być między 1 a 100")]
         public int Reps { get; set; }
+
+        [Required(ErrorMessage = "Ciężar jest wymagany")]
+        [Range(0, 1000, ErrorMessage = "Ciężar musi być między 0 a 1000 kg")]
         public double Weight { get; set; }
+
+        [Required(ErrorMessage = "RIR jest wymagane")]
+        [Range(0, 10, ErrorMessage = "RIR musi być między 0 a 10")]
         public int RIR { get; set; }
     }
 }
