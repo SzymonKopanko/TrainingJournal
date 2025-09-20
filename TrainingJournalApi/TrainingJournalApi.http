@@ -1,0 +1,28 @@
+@rootURL = http://localhost:5122
+
+
+###
+GET {{rootURL}}/api/exercises
+Accept: application/json
+
+###
+GET {{rootURL}}/api/exercises/3
+Accept: application/json
+
+###
+POST {{rootURL}}/api/exercises
+Content-Type: application/json
+  {
+    "name": "Wyciskanie sztangi na skosie",
+    "description": "Æwiczenie na klatkê piersiow¹ (górn¹)",
+    "bodyWeightPercentage": 0.15
+  }
+
+###
+PUT {{rootURL}}/api/exercises/3
+Content-Type: application/json
+  {
+    "name": "Wyciskanie sztangi",
+    "description": "Æwiczenie na klatkê piersiow¹",
+    "bodyWeightPercentage": 0.15
+  }
