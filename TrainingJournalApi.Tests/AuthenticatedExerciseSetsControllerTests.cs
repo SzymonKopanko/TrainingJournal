@@ -147,21 +147,21 @@ namespace TrainingJournalApi.Tests
             // Login user
             var loginDto = new LoginDto
             {
-                Email = "testuser@example.com",
+                Email = _testUser.Email,
                 Password = "TestPassword123!"
             };
 
             var loginResponse = await _client.PostAsJsonAsync("/api/Account/login", loginDto);
             if (loginResponse.IsSuccessStatusCode)
             {
-                // Copy cookies from login response to authenticated client
-                var cookies = loginResponse.Headers.GetValues("Set-Cookie");
-                var authenticatedClient = _factory.CreateClient();
-                foreach (var cookie in cookies)
+                // Get cookies from response
+                var cookieHeader = loginResponse.Headers.GetValues("Set-Cookie").FirstOrDefault();
+                if (!string.IsNullOrEmpty(cookieHeader))
                 {
-                    authenticatedClient.DefaultRequestHeaders.Add("Cookie", cookie);
+                    var authenticatedClient = _factory.CreateClient();
+                    authenticatedClient.DefaultRequestHeaders.Add("Cookie", cookieHeader);
+                    return authenticatedClient;
                 }
-                return authenticatedClient;
             }
 
             return _client; // Fallback to unauthenticated client

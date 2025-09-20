@@ -40,7 +40,7 @@ namespace TrainingJournalApi.DTOs
         [MaxLength(500, ErrorMessage = "Opis nie może przekraczać 500 znaków")]
         public string Description { get; set; } = string.Empty;
 
-        [Range(0, 99, ErrorMessage = "Procent masy ciała musi być między 0 a 2")]
+        [Range(0, 99, ErrorMessage = "Procent masy ciała musi być między 0 a 99")]
         public double BodyWeightPercentage { get; set; }
 
         public List<CreateExerciseMuscleGroupDto> ExerciseMuscleGroups { get; set; } = new List<CreateExerciseMuscleGroupDto>();

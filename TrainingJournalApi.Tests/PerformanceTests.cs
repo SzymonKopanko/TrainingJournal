@@ -158,7 +158,7 @@ namespace TrainingJournalApi.Tests
                 {
                     new CreateExerciseMuscleGroupDto { MuscleGroup = MuscleGroup.Chest, Role = MuscleGroupRole.Primary },
                     new CreateExerciseMuscleGroupDto { MuscleGroup = MuscleGroup.Triceps, Role = MuscleGroupRole.Secondary },
-                    new CreateExerciseMuscleGroupDto { MuscleGroup = MuscleGroup.Shoulders, Role = MuscleGroupRole.Secondary }
+                    new CreateExerciseMuscleGroupDto { MuscleGroup = MuscleGroup.FrontDeltoid, Role = MuscleGroupRole.Secondary }
                 }
             };
 

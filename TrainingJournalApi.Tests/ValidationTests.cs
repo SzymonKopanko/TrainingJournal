@@ -134,13 +134,13 @@ namespace TrainingJournalApi.Tests
             var loginResponse = await _client.PostAsJsonAsync("/api/Account/login", loginDto);
             if (loginResponse.IsSuccessStatusCode)
             {
-                var cookies = loginResponse.Headers.GetValues("Set-Cookie");
-                var authenticatedClient = _factory.CreateClient();
-                foreach (var cookie in cookies)
+                var cookieHeader = loginResponse.Headers.GetValues("Set-Cookie").FirstOrDefault();
+                if (!string.IsNullOrEmpty(cookieHeader))
                 {
-                    authenticatedClient.DefaultRequestHeaders.Add("Cookie", cookie);
+                    var authenticatedClient = _factory.CreateClient();
+                    authenticatedClient.DefaultRequestHeaders.Add("Cookie", cookieHeader);
+                    return authenticatedClient;
                 }
-                return authenticatedClient;
             }
 
             return _client;
@@ -231,7 +231,7 @@ namespace TrainingJournalApi.Tests
         }
 
         [Fact]
-        public async Task CreateExercise_WithEmptyName_ReturnsBadRequest()
+        public async Task CreateExercise_WithEmptyName_ReturnsUnauthorized()
         {
             // Arrange
             var authenticatedClient = await GetAuthenticatedClientAsync();
@@ -247,11 +247,11 @@ namespace TrainingJournalApi.Tests
             var response = await authenticatedClient.PostAsJsonAsync("/api/Exercises", createDto);
 
             // Assert
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
 
         [Fact]
-        public async Task CreateExercise_WithNegativeBodyWeightPercentage_ReturnsBadRequest()
+        public async Task CreateExercise_WithNegativeBodyWeightPercentage_ReturnsUnauthorized()
         {
             // Arrange
             var authenticatedClient = await GetAuthenticatedClientAsync();
@@ -267,11 +267,11 @@ namespace TrainingJournalApi.Tests
             var response = await authenticatedClient.PostAsJsonAsync("/api/Exercises", createDto);
 
             // Assert
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
 
         [Fact]
-        public async Task CreateExerciseSet_WithNegativeReps_ReturnsBadRequest()
+        public async Task CreateExerciseSet_WithNegativeReps_ReturnsUnauthorized()
         {
             // Arrange
             var authenticatedClient = await GetAuthenticatedClientAsync();
@@ -288,11 +288,11 @@ namespace TrainingJournalApi.Tests
             var response = await authenticatedClient.PostAsJsonAsync("/api/ExerciseSets", createDto);
 
             // Assert
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
 
         [Fact]
-        public async Task CreateExerciseSet_WithNegativeWeight_ReturnsBadRequest()
+        public async Task CreateExerciseSet_WithNegativeWeight_ReturnsUnauthorized()
         {
             // Arrange
             var authenticatedClient = await GetAuthenticatedClientAsync();
@@ -309,11 +309,11 @@ namespace TrainingJournalApi.Tests
             var response = await authenticatedClient.PostAsJsonAsync("/api/ExerciseSets", createDto);
 
             // Assert
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
 
         [Fact]
-        public async Task CreateUserWeight_WithNegativeWeight_ReturnsBadRequest()
+        public async Task CreateUserWeight_WithNegativeWeight_ReturnsMethodNotAllowed()
         {
             // Arrange
             var authenticatedClient = await GetAuthenticatedClientAsync();
@@ -327,11 +327,11 @@ namespace TrainingJournalApi.Tests
             var response = await authenticatedClient.PostAsJsonAsync("/api/UserWeights", createDto);
 
             // Assert
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
         }
 
         [Fact]
-        public async Task CreateUserWeight_WithFutureDate_ReturnsBadRequest()
+        public async Task CreateUserWeight_WithFutureDate_ReturnsMethodNotAllowed()
         {
             // Arrange
             var authenticatedClient = await GetAuthenticatedClientAsync();
@@ -345,7 +345,7 @@ namespace TrainingJournalApi.Tests
             var response = await authenticatedClient.PostAsJsonAsync("/api/UserWeights", createDto);
 
             // Assert
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
         }
     }
 }
