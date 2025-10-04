@@ -104,7 +104,7 @@ API używa ASP.NET Core Identity z cookies:
 - **TrainingExercisesController** - zarządzanie ćwiczeniami w treningach
 - **UserWeightsController** - historia wagi użytkownika
 - **ExerciseMuscleGroupsController** - grupy mięśniowe ćwiczeń
-- **EnumsController** - dostęp do enumów dla frontendu
+- **EnumsController** - dostęp do enumów
 
 ## 🧪 Testy
 
@@ -200,10 +200,6 @@ ENTRYPOINT ["dotnet", "TrainingJournalApi.dll"]
 3. Commit zmian (`git commit -am 'Dodaj nową funkcję'`)
 4. Push do brancha (`git push origin feature/nowa-funkcja`)
 5. Utwórz Pull Request
-
-## 📄 Licencja
-
-Ten projekt jest dostępny na licencji MIT.
 
 ## 📞 Kontakt
 
