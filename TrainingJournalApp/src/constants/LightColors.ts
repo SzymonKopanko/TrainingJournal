@@ -84,6 +84,7 @@ export const LightColors = {
   buttons: {
     primary: 'rgba(33, 150, 243, 1)',        // Niebieski - główny przycisk
     secondary: 'rgba(117, 117, 117, 1)',     // Szary - drugorzędny przycisk
+    outlined: 'rgba(255, 255, 255, 1)',     // Biały - przycisk outlined
     danger: 'rgba(244, 67, 54, 1)',          // Czerwony - przycisk usuwania
     success: 'rgba(76, 175, 80, 1)',         // Zielony - przycisk sukcesu
     disabled: 'rgba(189, 189, 189, 1)',      // Szary - wyłączony przycisk

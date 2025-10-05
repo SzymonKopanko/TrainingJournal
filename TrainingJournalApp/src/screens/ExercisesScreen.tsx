@@ -20,6 +20,17 @@ import {
   Provider as PaperProvider,
   RadioButton,
 } from 'react-native-paper';
+import { useNavigation } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
+
+type RootStackParamList = {
+  EditExercise: { 
+    exercise: Exercise | null;
+    onExerciseSaved?: () => void;
+  };
+};
+
+type ExercisesScreenNavigationProp = StackNavigationProp<RootStackParamList, 'EditExercise'>;
 import DatabaseService from '../services/DatabaseService';
 import { Exercise, CreateExerciseData, MuscleGroup, MuscleGroupRole } from '../types';
 import { 
@@ -31,6 +42,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 
 const ExercisesScreen: React.FC = () => {
+  const navigation = useNavigation<ExercisesScreenNavigationProp>();
   const { colors } = useTheme();
   const { translations } = useLanguage();
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -218,6 +230,7 @@ const ExercisesScreen: React.FC = () => {
       const data: CreateExerciseData = {
         name: name.trim(),
         description: description.trim() || undefined,
+        bodyWeightPercentage: 0, // Domyślna wartość
         muscleGroups: selectedMuscleGroups
       };
 
@@ -288,7 +301,12 @@ const ExercisesScreen: React.FC = () => {
         </View>
       </Card.Content>
       <Card.Actions>
-        <Button onPress={() => openEditModal(item)}>{translations.common.edit}</Button>
+        <Button onPress={() => navigation.navigate('EditExercise', { 
+          exercise: item, 
+          onExerciseSaved: loadExercises 
+        })}>
+          {translations.common.edit}
+        </Button>
         <Button onPress={() => handleDelete(item)} textColor={colors.error}>
           {translations.common.delete}
         </Button>
@@ -320,111 +338,13 @@ const ExercisesScreen: React.FC = () => {
         <FAB
           style={styles.fab}
           icon="plus"
-          onPress={openAddModal}
+          onPress={() => navigation.navigate('EditExercise', { 
+            exercise: null, 
+            onExerciseSaved: loadExercises 
+          })}
           label={translations.exercises.addExercise}
         />
 
-        <Portal>
-          <Modal
-            visible={modalVisible}
-            onDismiss={closeModal}
-            contentContainerStyle={styles.modalContainer}
-          >
-            <Title style={{ color: colors.textPrimary }}>{editingExercise ? translations.exercises.edit : translations.exercises.addExercise}</Title>
-            
-            <TextInput
-              label={translations.exercises.exerciseName}
-              value={name}
-              onChangeText={setName}
-              style={styles.input}
-              mode="outlined"
-            />
-            
-            <TextInput
-              label={translations.exercises.exerciseDescription}
-              value={description}
-              onChangeText={setDescription}
-              style={styles.input}
-              mode="outlined"
-              multiline
-              numberOfLines={3}
-            />
-
-            <Title style={{ color: colors.textPrimary }}>Grupy mięśniowe:</Title>
-            
-            <View style={styles.muscleGroupsContainer}>
-              {selectedMuscleGroups.map((mg, index) => (
-                <View key={index} style={styles.muscleGroupItem}>
-                  <Text style={{ color: colors.textPrimary, marginBottom: 8 }}>
-                    Grupa mięśniowa {index + 1}:
-                  </Text>
-                  
-                  <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 8 }}>
-                    Grupa mięśniowa:
-                  </Text>
-                  <RadioButton.Group 
-                    onValueChange={(value) => updateMuscleGroup(index, 'muscleGroup', value)} 
-                    value={mg.muscleGroup}
-                  >
-                    {Object.values(MuscleGroup)
-                      .filter(group => !selectedMuscleGroups.some((mg2, i) => i !== index && mg2.muscleGroup === group))
-                      .map(group => (
-                        <View key={group} style={styles.radioItem}>
-                          <RadioButton value={group} />
-                          <Text style={{ color: colors.textPrimary, marginLeft: 8 }}>
-                            {translateMuscleGroup(group)}
-                          </Text>
-                        </View>
-                      ))}
-                  </RadioButton.Group>
-
-                  <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 16, marginBottom: 8 }}>
-                    Rola:
-                  </Text>
-                  <RadioButton.Group 
-                    onValueChange={(value) => updateMuscleGroup(index, 'role', value)} 
-                    value={mg.role}
-                  >
-                    {Object.values(MuscleGroupRole).map(role => (
-                      <View key={role} style={styles.radioItem}>
-                        <RadioButton value={role} />
-                        <Text style={{ color: colors.textPrimary, marginLeft: 8 }}>
-                          {translateMuscleGroupRole(role)}
-                        </Text>
-                      </View>
-                    ))}
-                  </RadioButton.Group>
-
-                  <Button
-                    mode="outlined"
-                    onPress={() => removeMuscleGroup(index)}
-                    style={styles.removeButton}
-                    textColor={colors.error}
-                  >
-                    Usuń
-                  </Button>
-                </View>
-              ))}
-            </View>
-
-            <Button
-              mode="outlined"
-              onPress={addMuscleGroup}
-              style={styles.addButton}
-            >
-              Dodaj grupę mięśniową
-            </Button>
-
-            <View style={styles.modalActions}>
-              <Button onPress={closeModal} style={styles.modalButton}>
-                {translations.common.cancel}
-              </Button>
-              <Button mode="contained" onPress={handleSave} style={styles.modalButton}>
-                {translations.common.save}
-              </Button>
-            </View>
-          </Modal>
-        </Portal>
       </View>
     </PaperProvider>
   );

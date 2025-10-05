@@ -84,6 +84,7 @@ export const DarkColors = {
   buttons: {
     primary: 'rgba(76, 175, 80, 1)',        // Jaskrawy zielony - główny przycisk
     secondary: 'rgba(158, 158, 158, 1)',     // Średni jasny szary - drugorzędny przycisk
+    outlined: 'rgba(33, 33, 33, 1)',         // Ciemny szary - przycisk outlined
     danger: 'rgba(244, 67, 54, 1)',          // Czerwony - przycisk usuwania (bez zmian)
     success: 'rgba(76, 175, 80, 1)',        // Jaskrawy zielony - przycisk sukcesu
     disabled: 'rgba(97, 97, 97, 1)',         // Ciemny szary - wyłączony przycisk

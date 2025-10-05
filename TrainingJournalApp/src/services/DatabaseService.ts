@@ -44,9 +44,13 @@ class DatabaseService {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         description TEXT,
+        body_weight_percentage REAL DEFAULT 0.0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Migracja: dodaj kolumnę body_weight_percentage jeśli nie istnieje
+    await this.addColumnIfNotExists('exercises', 'body_weight_percentage', 'REAL DEFAULT 0.0');
 
     // Tabela ExerciseMuscleGroups
     await this.db.executeSql(`
@@ -118,13 +122,40 @@ class DatabaseService {
     `);
   }
 
+  private async addColumnIfNotExists(tableName: string, columnName: string, columnDefinition: string): Promise<void> {
+    if (!this.db) throw new Error('Baza danych nie jest zainicjalizowana');
+
+    try {
+      // Sprawdź czy kolumna istnieje
+      const result = await this.db.executeSql(`PRAGMA table_info(${tableName})`);
+      const columns = result[0].rows;
+      
+      let columnExists = false;
+      for (let i = 0; i < columns.length; i++) {
+        if (columns.item(i).name === columnName) {
+          columnExists = true;
+          break;
+        }
+      }
+
+      // Dodaj kolumnę jeśli nie istnieje
+      if (!columnExists) {
+        await this.db.executeSql(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDefinition}`);
+        console.log(`Dodano kolumnę ${columnName} do tabeli ${tableName}`);
+      }
+    } catch (error) {
+      console.error(`Błąd podczas dodawania kolumny ${columnName}:`, error);
+      // Nie rzucamy błędu, żeby nie blokować inicjalizacji
+    }
+  }
+
   // Exercise CRUD
   async createExercise(data: CreateExerciseData): Promise<Exercise> {
     if (!this.db) throw new Error('Baza danych nie jest zainicjalizowana');
 
     const result = await this.db.executeSql(
-      'INSERT INTO exercises (name, description) VALUES (?, ?)',
-      [data.name, data.description || null]
+      'INSERT INTO exercises (name, description, body_weight_percentage) VALUES (?, ?, ?)',
+      [data.name, data.description || null, data.bodyWeightPercentage]
     );
 
     const exerciseId = result[0].insertId;
@@ -163,6 +194,7 @@ class DatabaseService {
           id: exerciseId,
           name: row.name,
           description: row.description,
+          bodyWeightPercentage: row.body_weight_percentage,
           createdAt: row.created_at,
           muscleGroups: []
         });
@@ -202,6 +234,7 @@ class DatabaseService {
       id: result[0].rows.item(0).id,
       name: result[0].rows.item(0).name,
       description: result[0].rows.item(0).description,
+      bodyWeightPercentage: result[0].rows.item(0).body_weight_percentage,
       createdAt: result[0].rows.item(0).created_at,
       muscleGroups: []
     };
@@ -225,8 +258,8 @@ class DatabaseService {
     if (!this.db) throw new Error('Baza danych nie jest zainicjalizowana');
 
     await this.db.executeSql(
-      'UPDATE exercises SET name = ?, description = ? WHERE id = ?',
-      [data.name, data.description || null, id]
+      'UPDATE exercises SET name = ?, description = ?, body_weight_percentage = ? WHERE id = ?',
+      [data.name, data.description || null, data.bodyWeightPercentage, id]
     );
 
     // Usuń stare grupy mięśniowe
@@ -291,6 +324,7 @@ class DatabaseService {
              te.order_index,
              e.name as exercise_name,
              e.description as exercise_description,
+             e.body_weight_percentage as exercise_body_weight_percentage,
              e.created_at as exercise_created_at
       FROM trainings t
       LEFT JOIN training_exercises te ON t.id = te.training_id
@@ -328,6 +362,7 @@ class DatabaseService {
               id: row.exercise_id,
               name: row.exercise_name,
               description: row.exercise_description,
+              bodyWeightPercentage: row.exercise_body_weight_percentage,
               createdAt: row.exercise_created_at,
               muscleGroups: []
             },

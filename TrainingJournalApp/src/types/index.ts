@@ -24,6 +24,7 @@ export interface Exercise {
   id: number;
   name: string;
   description?: string;
+  bodyWeightPercentage: number; // procent masy ciała podnoszonej podczas ćwiczenia
   createdAt: string;
   muscleGroups: ExerciseMuscleGroup[];
 }
@@ -83,6 +84,7 @@ export interface UserWeight {
 export interface CreateExerciseData {
   name: string;
   description?: string;
+  bodyWeightPercentage: number;
   muscleGroups: {
     muscleGroup: MuscleGroup;
     role: MuscleGroupRole;

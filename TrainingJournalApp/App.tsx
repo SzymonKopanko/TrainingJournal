@@ -10,11 +10,13 @@ import { StatusBar, StyleSheet, useColorScheme } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
 import { Provider as PaperProvider } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 import DatabaseService from './src/services/DatabaseService';
 import ExercisesScreen from './src/screens/ExercisesScreen';
+import EditExerciseScreen from './src/screens/EditExerciseScreen';
 import TrainingsScreen from './src/screens/TrainingsScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
@@ -24,6 +26,26 @@ import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
 import { LanguageProvider, useLanguage } from './src/contexts/LanguageContext';
 
 const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator();
+
+function ExercisesStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false, // Usuń header
+      }}
+    >
+      <Stack.Screen 
+        name="ExercisesList" 
+        component={ExercisesScreen}
+      />
+      <Stack.Screen 
+        name="EditExercise" 
+        component={EditExerciseScreen}
+      />
+    </Stack.Navigator>
+  );
+}
 
 function AppContent() {
   const { isDark, colors } = useTheme();
@@ -97,7 +119,7 @@ function AppContent() {
           >
             <Tab.Screen 
               name="Exercises" 
-              component={ExercisesScreen}
+              component={ExercisesStack}
               options={{ title: translations.navigation.exercises }}
             />
             <Tab.Screen 
