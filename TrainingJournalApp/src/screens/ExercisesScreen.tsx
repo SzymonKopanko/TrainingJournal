@@ -20,13 +20,12 @@ import {
   Provider as PaperProvider,
   RadioButton,
 } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 
 type RootStackParamList = {
-  EditExercise: { 
+  EditExercise: {
     exercise: Exercise | null;
-    onExerciseSaved?: () => void;
   };
 };
 
@@ -141,6 +140,13 @@ const ExercisesScreen: React.FC = () => {
   useEffect(() => {
     loadExercises();
   }, []);
+
+  // Odśwież listę ćwiczeń gdy ekran się skupia (np. po powrocie z EditExerciseScreen)
+  useFocusEffect(
+    React.useCallback(() => {
+      loadExercises();
+    }, [])
+  );
 
   const loadExercises = async () => {
     try {
@@ -301,12 +307,11 @@ const ExercisesScreen: React.FC = () => {
         </View>
       </Card.Content>
       <Card.Actions>
-        <Button onPress={() => navigation.navigate('EditExercise', { 
-          exercise: item, 
-          onExerciseSaved: loadExercises 
-        })}>
-          {translations.common.edit}
-        </Button>
+              <Button onPress={() => navigation.navigate('EditExercise', {
+                exercise: item
+              })}>
+                {translations.common.edit}
+              </Button>
         <Button onPress={() => handleDelete(item)} textColor={colors.error}>
           {translations.common.delete}
         </Button>
@@ -335,15 +340,14 @@ const ExercisesScreen: React.FC = () => {
           contentContainerStyle={styles.listContainer}
         />
         
-        <FAB
-          style={styles.fab}
-          icon="plus"
-          onPress={() => navigation.navigate('EditExercise', { 
-            exercise: null, 
-            onExerciseSaved: loadExercises 
-          })}
-          label={translations.exercises.addExercise}
-        />
+      <FAB
+        style={styles.fab}
+        icon="plus"
+        onPress={() => navigation.navigate('EditExercise', {
+          exercise: null
+        })}
+        label={translations.exercises.addExercise}
+      />
 
       </View>
     </PaperProvider>

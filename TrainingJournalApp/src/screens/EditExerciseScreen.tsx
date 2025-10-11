@@ -19,8 +19,7 @@ import DatabaseService from '../services/DatabaseService';
 import { Exercise, CreateExerciseData, MuscleGroup, MuscleGroupRole } from '../types';
 import { 
   translateMuscleGroup, 
-  translateMuscleGroupRole,
-  getMuscleGroupRoleColor 
+  translateMuscleGroupRole
 } from '../constants';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -32,9 +31,8 @@ const EditExerciseScreen: React.FC = () => {
   const { translations } = useLanguage();
   
   // Pobierz exercise z parametrów lub null dla nowego ćwiczenia
-  const { exercise, onExerciseSaved } = route.params as { 
+  const { exercise } = route.params as { 
     exercise: Exercise | null; 
-    onExerciseSaved?: () => void;
   };
   const isEditing = !!exercise;
   
@@ -165,10 +163,6 @@ const EditExerciseScreen: React.FC = () => {
         { 
           text: translations.common.ok, 
           onPress: () => {
-            // Wywołaj callback jeśli istnieje
-            if (onExerciseSaved) {
-              onExerciseSaved();
-            }
             navigation.goBack();
           }
         }
