@@ -132,7 +132,6 @@ const ProfileScreen: React.FC = () => {
   // Form state
   const [weight, setWeight] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [notes, setNotes] = useState('');
 
   useEffect(() => {
     loadWeights();
@@ -153,7 +152,6 @@ const ProfileScreen: React.FC = () => {
   const resetForm = () => {
     setWeight('');
     setDate(new Date().toISOString().split('T')[0]);
-    setNotes('');
   };
 
   const openAddModal = () => {
@@ -181,8 +179,7 @@ const ProfileScreen: React.FC = () => {
     try {
       const data: CreateUserWeightData = {
         weight: weightValue,
-        date: date,
-        notes: notes.trim() || undefined
+        weightedAt: date
       };
 
       await DatabaseService.createUserWeight(data);
@@ -306,10 +303,7 @@ const ProfileScreen: React.FC = () => {
                   <View style={styles.weightItem}>
                     <View>
                       <Paragraph style={styles.weightValue}>{w.weight} kg</Paragraph>
-                      <Paragraph style={styles.dateText}>{formatDate(w.date)}</Paragraph>
-                      {w.notes && (
-                        <Paragraph style={styles.notes}>{w.notes}</Paragraph>
-                      )}
+                      <Paragraph style={styles.dateText}>{formatDate(w.weightedAt)}</Paragraph>
                     </View>
                   </View>
                   {index < Math.min(weights.length, 5) - 1 && <Divider style={styles.divider} />}
@@ -348,15 +342,6 @@ const ProfileScreen: React.FC = () => {
             placeholder="YYYY-MM-DD"
           />
 
-          <TextInput
-            label={translations.profile.notes}
-            value={notes}
-            onChangeText={setNotes}
-            style={styles.input}
-            mode="outlined"
-            multiline
-            numberOfLines={3}
-          />
 
           <View style={styles.modalActions}>
             <Button onPress={closeModal} style={styles.modalButton}>

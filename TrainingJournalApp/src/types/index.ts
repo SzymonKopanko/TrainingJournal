@@ -2,16 +2,18 @@
 export enum MuscleGroup {
   Chest = 'Chest',
   Back = 'Back',
+  FrontDeltoid = 'FrontDeltoid',
+  MiddleDeltoid = 'MiddleDeltoid',
+  RearDeltoid = 'RearDeltoid',
   Biceps = 'Biceps',
   Triceps = 'Triceps',
-  Shoulders = 'Shoulders',
-  Legs = 'Legs',
+  Quads = 'Quads',
+  Hamstrings = 'Hamstrings',
   Glutes = 'Glutes',
   Calves = 'Calves',
   Abs = 'Abs',
   Forearms = 'Forearms',
-  Traps = 'Traps',
-  Lats = 'Lats'
+  Cardio = 'Cardio'
 }
 
 export enum MuscleGroupRole {
@@ -23,9 +25,10 @@ export enum MuscleGroupRole {
 export interface Exercise {
   id: number;
   name: string;
-  description?: string;
+  description: string;
   bodyWeightPercentage: number; // procent masy ciała podnoszonej podczas ćwiczenia
   createdAt: string;
+  updatedAt?: string;
   muscleGroups: ExerciseMuscleGroup[];
 }
 
@@ -34,14 +37,16 @@ export interface ExerciseMuscleGroup {
   exerciseId: number;
   muscleGroup: MuscleGroup;
   role: MuscleGroupRole;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Training {
   id: number;
   name: string;
   description?: string;
-  date: string;
   createdAt: string;
+  updatedAt?: string;
   exercises: TrainingExercise[];
 }
 
@@ -51,33 +56,39 @@ export interface TrainingExercise {
   exerciseId: number;
   exercise: Exercise;
   order: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
   sets: ExerciseSet[];
 }
 
 export interface ExerciseSet {
   id: number;
-  trainingExerciseId: number;
+  exerciseEntryId: number;
+  order: number;
   reps: number;
   weight: number;
-  restTime?: number; // w sekundach
-  notes?: string;
-  completedAt?: string;
+  rir: number; // reps in reserve
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface ExerciseEntry {
   id: number;
   exerciseId: number;
   exercise: Exercise;
-  date: string;
+  notes: string;
+  createdAt: string;
+  updatedAt?: string;
   sets: ExerciseSet[];
-  notes?: string;
 }
 
 export interface UserWeight {
   id: number;
   weight: number;
-  date: string;
-  notes?: string;
+  weightedAt: string;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 // Form Types
@@ -94,28 +105,22 @@ export interface CreateExerciseData {
 export interface CreateTrainingData {
   name: string;
   description?: string;
-  date: string;
   exercises: {
     exerciseId: number;
     order: number;
-    sets: {
-      reps: number;
-      weight: number;
-      restTime?: number;
-    }[];
+    notes?: string;
   }[];
 }
 
 export interface CreateExerciseSetData {
-  trainingExerciseId: number;
+  exerciseEntryId: number;
+  order: number;
   reps: number;
   weight: number;
-  restTime?: number;
-  notes?: string;
+  rir: number;
 }
 
 export interface CreateUserWeightData {
   weight: number;
-  date: string;
-  notes?: string;
+  weightedAt: string;
 }

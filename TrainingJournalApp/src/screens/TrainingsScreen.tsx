@@ -110,7 +110,6 @@ const TrainingsScreen: React.FC = () => {
   // Form state
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     loadData();
@@ -141,7 +140,6 @@ const TrainingsScreen: React.FC = () => {
   const resetForm = () => {
     setName('');
     setDescription('');
-    setDate(new Date().toISOString().split('T')[0]);
     setEditingTraining(null);
   };
 
@@ -153,7 +151,6 @@ const TrainingsScreen: React.FC = () => {
   const openEditModal = (training: Training) => {
     setName(training.name);
     setDescription(training.description || '');
-    setDate(training.date.split('T')[0]);
     setEditingTraining(training);
     setModalVisible(true);
   };
@@ -173,7 +170,6 @@ const TrainingsScreen: React.FC = () => {
       const data: CreateTrainingData = {
         name: name.trim(),
         description: description.trim() || undefined,
-        date: date,
         exercises: [] // Na razie puste, można rozszerzyć później
       };
 
@@ -232,7 +228,7 @@ const TrainingsScreen: React.FC = () => {
         <Title style={{ color: colors.textPrimary }}>{item.name}</Title>
         {item.description && <Paragraph style={{ color: colors.textSecondary }}>{item.description}</Paragraph>}
         <Paragraph style={styles.dateText}>
-          {translations.trainings.trainingDate}: {formatDate(item.date)}
+          {translations.trainings.trainingDate}: {formatDate(item.createdAt)}
         </Paragraph>
         <View style={styles.exercisesList}>
           {item.exercises.length > 0 ? (
@@ -338,19 +334,6 @@ const TrainingsScreen: React.FC = () => {
               activeOutlineColor={colors.inputs.borderFocused}
             />
 
-            <TextInput
-              label={translations.trainings.trainingDate}
-              value={date}
-              onChangeText={setDate}
-              style={styles.input}
-              mode="outlined"
-              keyboardType="numeric"
-              placeholder="YYYY-MM-DD"
-              textColor={colors.textPrimary}
-              placeholderTextColor={colors.inputs.placeholder}
-              outlineColor={colors.inputs.border}
-              activeOutlineColor={colors.inputs.borderFocused}
-            />
 
             <View style={styles.modalActions}>
               <Button 

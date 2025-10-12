@@ -43,14 +43,30 @@ class DatabaseService {
       CREATE TABLE IF NOT EXISTS exercises (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
-        description TEXT,
+        description TEXT NOT NULL,
         body_weight_percentage REAL DEFAULT 0.0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME
       )
     `);
 
-    // Migracja: dodaj kolumnę body_weight_percentage jeśli nie istnieje
+    // Migracje: dodaj kolumny jeśli nie istnieją
     await this.addColumnIfNotExists('exercises', 'body_weight_percentage', 'REAL DEFAULT 0.0');
+    await this.addColumnIfNotExists('exercises', 'updated_at', 'DATETIME');
+    await this.addColumnIfNotExists('exercise_muscle_groups', 'created_at', 'DATETIME');
+    await this.addColumnIfNotExists('exercise_muscle_groups', 'updated_at', 'DATETIME');
+    await this.addColumnIfNotExists('trainings', 'updated_at', 'DATETIME');
+    await this.addColumnIfNotExists('training_exercises', 'notes', 'TEXT');
+    await this.addColumnIfNotExists('training_exercises', 'created_at', 'DATETIME');
+    await this.addColumnIfNotExists('training_exercises', 'updated_at', 'DATETIME');
+    await this.addColumnIfNotExists('exercise_entries', 'created_at', 'DATETIME');
+    await this.addColumnIfNotExists('exercise_entries', 'updated_at', 'DATETIME');
+    await this.addColumnIfNotExists('user_weights', 'weighted_at', 'DATETIME');
+    await this.addColumnIfNotExists('user_weights', 'created_at', 'DATETIME');
+    await this.addColumnIfNotExists('user_weights', 'updated_at', 'DATETIME');
+
+    // Inicjalizuj wartości created_at dla istniejących rekordów
+    await this.initializeCreatedAtValues();
 
     // Tabela ExerciseMuscleGroups
     await this.db.executeSql(`
@@ -59,6 +75,8 @@ class DatabaseService {
         exercise_id INTEGER NOT NULL,
         muscle_group TEXT NOT NULL,
         role TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME,
         FOREIGN KEY (exercise_id) REFERENCES exercises (id) ON DELETE CASCADE
       )
     `);
@@ -69,8 +87,8 @@ class DatabaseService {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         description TEXT,
-        date DATETIME NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME
       )
     `);
 
@@ -81,6 +99,9 @@ class DatabaseService {
         training_id INTEGER NOT NULL,
         exercise_id INTEGER NOT NULL,
         order_index INTEGER NOT NULL,
+        notes TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME,
         FOREIGN KEY (training_id) REFERENCES trainings (id) ON DELETE CASCADE,
         FOREIGN KEY (exercise_id) REFERENCES exercises (id) ON DELETE CASCADE
       )
@@ -90,13 +111,14 @@ class DatabaseService {
     await this.db.executeSql(`
       CREATE TABLE IF NOT EXISTS exercise_sets (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        training_exercise_id INTEGER NOT NULL,
+        exercise_entry_id INTEGER NOT NULL,
+        order_index INTEGER NOT NULL,
         reps INTEGER NOT NULL,
         weight REAL NOT NULL,
-        rest_time INTEGER,
-        notes TEXT,
-        completed_at DATETIME,
-        FOREIGN KEY (training_exercise_id) REFERENCES training_exercises (id) ON DELETE CASCADE
+        rir INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME,
+        FOREIGN KEY (exercise_entry_id) REFERENCES exercise_entries (id) ON DELETE CASCADE
       )
     `);
 
@@ -105,8 +127,9 @@ class DatabaseService {
       CREATE TABLE IF NOT EXISTS exercise_entries (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         exercise_id INTEGER NOT NULL,
-        date DATETIME NOT NULL,
-        notes TEXT,
+        notes TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME,
         FOREIGN KEY (exercise_id) REFERENCES exercises (id) ON DELETE CASCADE
       )
     `);
@@ -116,8 +139,9 @@ class DatabaseService {
       CREATE TABLE IF NOT EXISTS user_weights (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         weight REAL NOT NULL,
-        date DATETIME NOT NULL,
-        notes TEXT
+        weighted_at DATETIME NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME
       )
     `);
   }
@@ -149,13 +173,55 @@ class DatabaseService {
     }
   }
 
+  private async initializeCreatedAtValues(): Promise<void> {
+    if (!this.db) throw new Error('Baza danych nie jest zainicjalizowana');
+
+    try {
+      const currentTime = new Date().toISOString();
+      
+      // Inicjalizuj created_at dla exercise_muscle_groups
+      await this.db.executeSql(`
+        UPDATE exercise_muscle_groups 
+        SET created_at = ? 
+        WHERE created_at IS NULL
+      `, [currentTime]);
+
+      // Inicjalizuj created_at dla training_exercises
+      await this.db.executeSql(`
+        UPDATE training_exercises 
+        SET created_at = ? 
+        WHERE created_at IS NULL
+      `, [currentTime]);
+
+      // Inicjalizuj created_at dla exercise_entries
+      await this.db.executeSql(`
+        UPDATE exercise_entries 
+        SET created_at = ? 
+        WHERE created_at IS NULL
+      `, [currentTime]);
+
+      // Inicjalizuj created_at dla user_weights
+      await this.db.executeSql(`
+        UPDATE user_weights 
+        SET created_at = ? 
+        WHERE created_at IS NULL
+      `, [currentTime]);
+
+      console.log('Zainicjalizowano wartości created_at dla istniejących rekordów');
+    } catch (error) {
+      console.error('Błąd podczas inicjalizacji wartości created_at:', error);
+      // Nie rzucamy błędu, żeby nie blokować inicjalizacji
+    }
+  }
+
   // Exercise CRUD
   async createExercise(data: CreateExerciseData): Promise<Exercise> {
     if (!this.db) throw new Error('Baza danych nie jest zainicjalizowana');
 
+    const currentTime = new Date().toISOString();
     const result = await this.db.executeSql(
-      'INSERT INTO exercises (name, description, body_weight_percentage) VALUES (?, ?, ?)',
-      [data.name, data.description || null, data.bodyWeightPercentage]
+      'INSERT INTO exercises (name, description, body_weight_percentage, created_at) VALUES (?, ?, ?, ?)',
+      [data.name, data.description || '', data.bodyWeightPercentage, currentTime]
     );
 
     const exerciseId = result[0].insertId;
@@ -163,8 +229,8 @@ class DatabaseService {
     // Dodaj grupy mięśniowe
     for (const muscleGroup of data.muscleGroups) {
       await this.db.executeSql(
-        'INSERT INTO exercise_muscle_groups (exercise_id, muscle_group, role) VALUES (?, ?, ?)',
-        [exerciseId, muscleGroup.muscleGroup, muscleGroup.role]
+        'INSERT INTO exercise_muscle_groups (exercise_id, muscle_group, role, created_at) VALUES (?, ?, ?, ?)',
+        [exerciseId, muscleGroup.muscleGroup, muscleGroup.role, currentTime]
       );
     }
 
@@ -193,9 +259,10 @@ class DatabaseService {
         exercisesMap.set(exerciseId, {
           id: exerciseId,
           name: row.name,
-          description: row.description,
+          description: row.description || '',
           bodyWeightPercentage: row.body_weight_percentage,
           createdAt: row.created_at,
+          updatedAt: row.updated_at,
           muscleGroups: []
         });
       }
@@ -205,7 +272,9 @@ class DatabaseService {
           id: row.id,
           exerciseId: exerciseId,
           muscleGroup: row.muscle_group as MuscleGroup,
-          role: row.role as MuscleGroupRole
+          role: row.role as MuscleGroupRole,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at
         });
       }
     }
@@ -257,9 +326,10 @@ class DatabaseService {
   async updateExercise(id: number, data: CreateExerciseData): Promise<Exercise> {
     if (!this.db) throw new Error('Baza danych nie jest zainicjalizowana');
 
+    const currentTime = new Date().toISOString();
     await this.db.executeSql(
-      'UPDATE exercises SET name = ?, description = ?, body_weight_percentage = ? WHERE id = ?',
-      [data.name, data.description || null, data.bodyWeightPercentage, id]
+      'UPDATE exercises SET name = ?, description = ?, body_weight_percentage = ?, updated_at = ? WHERE id = ?',
+      [data.name, data.description || '', data.bodyWeightPercentage, currentTime, id]
     );
 
     // Usuń stare grupy mięśniowe
@@ -268,8 +338,8 @@ class DatabaseService {
     // Dodaj nowe grupy mięśniowe
     for (const muscleGroup of data.muscleGroups) {
       await this.db.executeSql(
-        'INSERT INTO exercise_muscle_groups (exercise_id, muscle_group, role) VALUES (?, ?, ?)',
-        [id, muscleGroup.muscleGroup, muscleGroup.role]
+        'INSERT INTO exercise_muscle_groups (exercise_id, muscle_group, role, created_at) VALUES (?, ?, ?, ?)',
+        [id, muscleGroup.muscleGroup, muscleGroup.role, currentTime]
       );
     }
 
@@ -286,29 +356,20 @@ class DatabaseService {
   async createTraining(data: CreateTrainingData): Promise<Training> {
     if (!this.db) throw new Error('Baza danych nie jest zainicjalizowana');
 
+    const currentTime = new Date().toISOString();
     const result = await this.db.executeSql(
-      'INSERT INTO trainings (name, description, date) VALUES (?, ?, ?)',
-      [data.name, data.description || null, data.date]
+      'INSERT INTO trainings (name, description, created_at) VALUES (?, ?, ?)',
+      [data.name, data.description || null, currentTime]
     );
 
     const trainingId = result[0].insertId;
 
     // Dodaj ćwiczenia do treningu
     for (const exerciseData of data.exercises) {
-      const teResult = await this.db.executeSql(
-        'INSERT INTO training_exercises (training_id, exercise_id, order_index) VALUES (?, ?, ?)',
-        [trainingId, exerciseData.exerciseId, exerciseData.order]
+      await this.db.executeSql(
+        'INSERT INTO training_exercises (training_id, exercise_id, order_index, notes, created_at) VALUES (?, ?, ?, ?, ?)',
+        [trainingId, exerciseData.exerciseId, exerciseData.order, exerciseData.notes || null, currentTime]
       );
-
-      const trainingExerciseId = teResult[0].insertId;
-
-      // Dodaj serie
-      for (const setData of exerciseData.sets) {
-        await this.db.executeSql(
-          'INSERT INTO exercise_sets (training_exercise_id, reps, weight, rest_time) VALUES (?, ?, ?, ?)',
-          [trainingExerciseId, setData.reps, setData.weight, setData.restTime || null]
-        );
-      }
     }
 
     return this.getTrainingById(trainingId);
@@ -466,16 +527,18 @@ class DatabaseService {
   async createUserWeight(data: CreateUserWeightData): Promise<UserWeight> {
     if (!this.db) throw new Error('Baza danych nie jest zainicjalizowana');
 
+    const currentTime = new Date().toISOString();
     const result = await this.db.executeSql(
-      'INSERT INTO user_weights (weight, date, notes) VALUES (?, ?, ?)',
-      [data.weight, data.date, data.notes || null]
+      'INSERT INTO user_weights (weight, weighted_at, created_at) VALUES (?, ?, ?)',
+      [data.weight, data.weightedAt, currentTime]
     );
 
     return {
       id: result[0].insertId,
       weight: data.weight,
-      date: data.date,
-      notes: data.notes
+      weightedAt: data.weightedAt,
+      createdAt: currentTime,
+      updatedAt: undefined
     };
   }
 
@@ -484,7 +547,7 @@ class DatabaseService {
 
     const result = await this.db.executeSql(`
       SELECT * FROM user_weights 
-      ORDER BY date DESC
+      ORDER BY weighted_at DESC
     `);
 
     const weights: UserWeight[] = [];
@@ -493,8 +556,9 @@ class DatabaseService {
       weights.push({
         id: row.id,
         weight: row.weight,
-        date: row.date,
-        notes: row.notes
+        weightedAt: row.weighted_at,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
       });
     }
 
@@ -573,9 +637,10 @@ class DatabaseService {
     const nextOrder = (orderRows.rows.item(0)?.max_order || 0) + 1;
 
     // Dodaj ćwiczenie do treningu
+    const currentTime = new Date().toISOString();
     const [result] = await this.db.executeSql(
-      'INSERT INTO training_exercises (training_id, exercise_id, order_index) VALUES (?, ?, ?)',
-      [trainingId, exerciseId, nextOrder]
+      'INSERT INTO training_exercises (training_id, exercise_id, order_index, created_at) VALUES (?, ?, ?, ?)',
+      [trainingId, exerciseId, nextOrder, currentTime]
     );
 
     const trainingExerciseId = result.insertId;

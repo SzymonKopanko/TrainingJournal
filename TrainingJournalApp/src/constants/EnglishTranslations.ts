@@ -136,16 +136,18 @@ export const EnglishTranslations = {
   muscleGroups: {
     chest: 'Chest',
     back: 'Back',
+    frontDeltoid: 'Front Deltoid',
+    middleDeltoid: 'Middle Deltoid',
+    rearDeltoid: 'Rear Deltoid',
     biceps: 'Biceps',
     triceps: 'Triceps',
-    shoulders: 'Shoulders',
-    legs: 'Legs',
+    quads: 'Quadriceps',
+    hamstrings: 'Hamstrings',
     glutes: 'Glutes',
     calves: 'Calves',
     abs: 'Abs',
     forearms: 'Forearms',
-    traps: 'Traps',
-    lats: 'Lats',
+    cardio: 'Cardio',
   },
   
   // Muscle group roles

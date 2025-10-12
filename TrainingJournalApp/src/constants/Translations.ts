@@ -149,16 +149,18 @@ export const PolishTranslations = {
   muscleGroups: {
     chest: 'Klatka piersiowa',
     back: 'Plecy',
+    frontDeltoid: 'Przedni akton barków',
+    middleDeltoid: 'Boczny akton barków',
+    rearDeltoid: 'Tylny akton barków',
     biceps: 'Biceps',
     triceps: 'Triceps',
-    shoulders: 'Barki',
-    legs: 'Nogi',
+    quads: 'Mięśnie czworogłowe ud',
+    hamstrings: 'Mięśnie dwugłowe ud',
     glutes: 'Pośladki',
     calves: 'Łydki',
     abs: 'Brzuch',
     forearms: 'Przedramiona',
-    traps: 'Kaptury',
-    lats: 'Najszersze grzbietu',
+    cardio: 'Cardio',
   },
   
   // Role grup mięśniowych

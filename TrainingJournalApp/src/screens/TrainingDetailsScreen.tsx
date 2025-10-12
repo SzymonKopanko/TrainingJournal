@@ -281,7 +281,7 @@ const TrainingDetailsScreen: React.FC = () => {
                   </Paragraph>
                 )}
                 <Paragraph style={{ color: colors.textSecondary, fontSize: 12, marginTop: 8 }}>
-                  Data: {new Date(trainingDetails.date).toLocaleDateString('pl-PL')}
+                  Data: {new Date(trainingDetails.createdAt).toLocaleDateString('pl-PL')}
                 </Paragraph>
                 <Paragraph style={{ color: colors.textSecondary, fontSize: 12 }}>
                   Ćwiczeń: {trainingDetails.exercises.length}

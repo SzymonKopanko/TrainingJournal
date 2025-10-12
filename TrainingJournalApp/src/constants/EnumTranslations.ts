@@ -13,16 +13,18 @@ export const translateMuscleGroup = (muscleGroup: MuscleGroup): string => {
   const translations: Record<MuscleGroup, string> = {
     [MuscleGroup.Chest]: Translations.muscleGroups.chest,
     [MuscleGroup.Back]: Translations.muscleGroups.back,
+    [MuscleGroup.FrontDeltoid]: Translations.muscleGroups.frontDeltoid,
+    [MuscleGroup.MiddleDeltoid]: Translations.muscleGroups.middleDeltoid,
+    [MuscleGroup.RearDeltoid]: Translations.muscleGroups.rearDeltoid,
     [MuscleGroup.Biceps]: Translations.muscleGroups.biceps,
     [MuscleGroup.Triceps]: Translations.muscleGroups.triceps,
-    [MuscleGroup.Shoulders]: Translations.muscleGroups.shoulders,
-    [MuscleGroup.Legs]: Translations.muscleGroups.legs,
+    [MuscleGroup.Quads]: Translations.muscleGroups.quads,
+    [MuscleGroup.Hamstrings]: Translations.muscleGroups.hamstrings,
     [MuscleGroup.Glutes]: Translations.muscleGroups.glutes,
     [MuscleGroup.Calves]: Translations.muscleGroups.calves,
     [MuscleGroup.Abs]: Translations.muscleGroups.abs,
     [MuscleGroup.Forearms]: Translations.muscleGroups.forearms,
-    [MuscleGroup.Traps]: Translations.muscleGroups.traps,
-    [MuscleGroup.Lats]: Translations.muscleGroups.lats,
+    [MuscleGroup.Cardio]: Translations.muscleGroups.cardio,
   };
   
   return translations[muscleGroup] || muscleGroup;
@@ -47,16 +49,18 @@ export const getMuscleGroupColor = (muscleGroup: MuscleGroup): string => {
   const colors: Record<MuscleGroup, string> = {
     [MuscleGroup.Chest]: 'rgba(233, 30, 99, 1)',
     [MuscleGroup.Back]: 'rgba(156, 39, 176, 1)',
+    [MuscleGroup.FrontDeltoid]: 'rgba(0, 188, 212, 1)',
+    [MuscleGroup.MiddleDeltoid]: 'rgba(0, 150, 200, 1)',
+    [MuscleGroup.RearDeltoid]: 'rgba(0, 120, 180, 1)',
     [MuscleGroup.Biceps]: 'rgba(63, 81, 181, 1)',
     [MuscleGroup.Triceps]: 'rgba(33, 150, 243, 1)',
-    [MuscleGroup.Shoulders]: 'rgba(0, 188, 212, 1)',
-    [MuscleGroup.Legs]: 'rgba(76, 175, 80, 1)',
-    [MuscleGroup.Glutes]: 'rgba(139, 195, 74, 1)',
-    [MuscleGroup.Calves]: 'rgba(205, 220, 57, 1)',
-    [MuscleGroup.Abs]: 'rgba(255, 235, 59, 1)',
-    [MuscleGroup.Forearms]: 'rgba(255, 152, 0, 1)',
-    [MuscleGroup.Traps]: 'rgba(255, 87, 34, 1)',
-    [MuscleGroup.Lats]: 'rgba(121, 85, 72, 1)',
+    [MuscleGroup.Quads]: 'rgba(76, 175, 80, 1)',
+    [MuscleGroup.Hamstrings]: 'rgba(139, 195, 74, 1)',
+    [MuscleGroup.Glutes]: 'rgba(205, 220, 57, 1)',
+    [MuscleGroup.Calves]: 'rgba(255, 235, 59, 1)',
+    [MuscleGroup.Abs]: 'rgba(255, 152, 0, 1)',
+    [MuscleGroup.Forearms]: 'rgba(255, 87, 34, 1)',
+    [MuscleGroup.Cardio]: 'rgba(121, 85, 72, 1)',
   };
   
   return colors[muscleGroup] || 'rgba(117, 117, 117, 1)';
