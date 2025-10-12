@@ -18,6 +18,7 @@ import DatabaseService from './src/services/DatabaseService';
 import ExercisesScreen from './src/screens/ExercisesScreen';
 import EditExerciseScreen from './src/screens/EditExerciseScreen';
 import TrainingsScreen from './src/screens/TrainingsScreen';
+import TrainingDetailsScreen from './src/screens/TrainingDetailsScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
@@ -42,6 +43,25 @@ function ExercisesStack() {
       <Stack.Screen 
         name="EditExercise" 
         component={EditExerciseScreen}
+      />
+    </Stack.Navigator>
+  );
+}
+
+function TrainingsStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false, // Usuń header
+      }}
+    >
+      <Stack.Screen 
+        name="TrainingsList" 
+        component={TrainingsScreen}
+      />
+      <Stack.Screen 
+        name="TrainingDetails" 
+        component={TrainingDetailsScreen}
       />
     </Stack.Navigator>
   );
@@ -124,7 +144,7 @@ function AppContent() {
             />
             <Tab.Screen 
               name="Trainings" 
-              component={TrainingsScreen}
+              component={TrainingsStack}
               options={{ title: translations.navigation.trainings }}
             />
             <Tab.Screen 

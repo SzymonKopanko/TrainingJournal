@@ -549,6 +549,201 @@ class DatabaseService {
       [id]
     );
   }
+
+  // TrainingExercise CRUD
+  async addExerciseToTraining(trainingId: number, exerciseId: number): Promise<TrainingExercise> {
+    if (!this.db) throw new Error('Baza danych nie jest zainicjalizowana');
+
+    // Sprawdź czy ćwiczenie już istnieje w treningu
+    const [existingRows] = await this.db.executeSql(
+      'SELECT id FROM training_exercises WHERE training_id = ? AND exercise_id = ?',
+      [trainingId, exerciseId]
+    );
+
+    if (existingRows.rows.length > 0) {
+      throw new Error('Ćwiczenie już istnieje w tym treningu');
+    }
+
+    // Pobierz maksymalny order dla tego treningu
+    const [orderRows] = await this.db.executeSql(
+      'SELECT MAX(order_index) as max_order FROM training_exercises WHERE training_id = ?',
+      [trainingId]
+    );
+
+    const nextOrder = (orderRows.rows.item(0)?.max_order || 0) + 1;
+
+    // Dodaj ćwiczenie do treningu
+    const [result] = await this.db.executeSql(
+      'INSERT INTO training_exercises (training_id, exercise_id, order_index) VALUES (?, ?, ?)',
+      [trainingId, exerciseId, nextOrder]
+    );
+
+    const trainingExerciseId = result.insertId;
+
+    // Pobierz pełne dane ćwiczenia
+    const [exerciseRows] = await this.db.executeSql(
+      'SELECT * FROM exercises WHERE id = ?',
+      [exerciseId]
+    );
+
+    if (exerciseRows.rows.length === 0) {
+      throw new Error('Ćwiczenie nie zostało znalezione');
+    }
+
+    const exerciseRow = exerciseRows.rows.item(0);
+
+    // Pobierz grupy mięśniowe dla ćwiczenia
+    const [muscleGroupRows] = await this.db.executeSql(
+      'SELECT * FROM exercise_muscle_groups WHERE exercise_id = ?',
+      [exerciseId]
+    );
+
+    const muscleGroups = [];
+    for (let i = 0; i < muscleGroupRows.rows.length; i++) {
+      const row = muscleGroupRows.rows.item(i);
+      muscleGroups.push({
+        id: row.id,
+        exerciseId: row.exercise_id,
+        muscleGroup: row.muscle_group,
+        role: row.role
+      });
+    }
+
+    // Pobierz serie dla tego ćwiczenia w treningu
+    const [setRows] = await this.db.executeSql(
+      'SELECT * FROM exercise_sets WHERE training_exercise_id = ? ORDER BY id',
+      [trainingExerciseId]
+    );
+
+    const sets = [];
+    for (let i = 0; i < setRows.rows.length; i++) {
+      const row = setRows.rows.item(i);
+      sets.push({
+        id: row.id,
+        trainingExerciseId: row.training_exercise_id,
+        reps: row.reps,
+        weight: row.weight,
+        restTime: row.rest_time,
+        notes: row.notes,
+        completedAt: row.completed_at
+      });
+    }
+
+    return {
+      id: trainingExerciseId,
+      trainingId: trainingId,
+      exerciseId: exerciseId,
+      order: nextOrder,
+      exercise: {
+        id: exerciseRow.id,
+        name: exerciseRow.name,
+        description: exerciseRow.description,
+        bodyWeightPercentage: exerciseRow.body_weight_percentage,
+        createdAt: exerciseRow.created_at,
+        muscleGroups: muscleGroups
+      },
+      sets: sets
+    };
+  }
+
+  async removeExerciseFromTraining(trainingExerciseId: number): Promise<void> {
+    if (!this.db) throw new Error('Baza danych nie jest zainicjalizowana');
+
+    // Usuń wszystkie serie dla tego ćwiczenia w treningu
+    await this.db.executeSql(
+      'DELETE FROM exercise_sets WHERE training_exercise_id = ?',
+      [trainingExerciseId]
+    );
+
+    // Usuń ćwiczenie z treningu
+    await this.db.executeSql(
+      'DELETE FROM training_exercises WHERE id = ?',
+      [trainingExerciseId]
+    );
+  }
+
+  async updateTrainingExerciseOrder(trainingExerciseId: number, newOrder: number): Promise<void> {
+    if (!this.db) throw new Error('Baza danych nie jest zainicjalizowana');
+
+    await this.db.executeSql(
+      'UPDATE training_exercises SET order_index = ? WHERE id = ?',
+      [newOrder, trainingExerciseId]
+    );
+  }
+
+  async getTrainingExercises(trainingId: number): Promise<TrainingExercise[]> {
+    if (!this.db) throw new Error('Baza danych nie jest zainicjalizowana');
+
+    const [rows] = await this.db.executeSql(
+      'SELECT te.*, e.name as exercise_name, e.description as exercise_description, ' +
+      'e.body_weight_percentage as exercise_body_weight_percentage, e.created_at as exercise_created_at ' +
+      'FROM training_exercises te ' +
+      'JOIN exercises e ON te.exercise_id = e.id ' +
+      'WHERE te.training_id = ? ' +
+      'ORDER BY te.order_index',
+      [trainingId]
+    );
+
+    const trainingExercises = [];
+    for (let i = 0; i < rows.rows.length; i++) {
+      const row = rows.rows.item(i);
+
+      // Pobierz grupy mięśniowe dla ćwiczenia
+      const [muscleGroupRows] = await this.db.executeSql(
+        'SELECT * FROM exercise_muscle_groups WHERE exercise_id = ?',
+        [row.exercise_id]
+      );
+
+      const muscleGroups = [];
+      for (let j = 0; j < muscleGroupRows.rows.length; j++) {
+        const mgRow = muscleGroupRows.rows.item(j);
+        muscleGroups.push({
+          id: mgRow.id,
+          exerciseId: mgRow.exercise_id,
+          muscleGroup: mgRow.muscle_group,
+          role: mgRow.role
+        });
+      }
+
+      // Pobierz serie dla tego ćwiczenia w treningu
+      const [setRows] = await this.db.executeSql(
+        'SELECT * FROM exercise_sets WHERE training_exercise_id = ? ORDER BY id',
+        [row.id]
+      );
+
+      const sets = [];
+      for (let j = 0; j < setRows.rows.length; j++) {
+        const setRow = setRows.rows.item(j);
+        sets.push({
+          id: setRow.id,
+          trainingExerciseId: setRow.training_exercise_id,
+          reps: setRow.reps,
+          weight: setRow.weight,
+          restTime: setRow.rest_time,
+          notes: setRow.notes,
+          completedAt: setRow.completed_at
+        });
+      }
+
+      trainingExercises.push({
+        id: row.id,
+        trainingId: row.training_id,
+        exerciseId: row.exercise_id,
+        order: row.order_index,
+        exercise: {
+          id: row.exercise_id,
+          name: row.exercise_name,
+          description: row.exercise_description,
+          bodyWeightPercentage: row.exercise_body_weight_percentage,
+          createdAt: row.exercise_created_at,
+          muscleGroups: muscleGroups
+        },
+        sets: sets
+      });
+    }
+
+    return trainingExercises;
+  }
 }
 
 export default new DatabaseService();

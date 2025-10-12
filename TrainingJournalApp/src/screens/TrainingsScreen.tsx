@@ -23,8 +23,19 @@ import { Training, Exercise, CreateTrainingData } from '../types';
 import { Colors, Translations } from '../constants';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useNavigation } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
+
+type RootStackParamList = {
+  TrainingDetails: {
+    training: Training;
+  };
+};
+
+type TrainingsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'TrainingDetails'>;
 
 const TrainingsScreen: React.FC = () => {
+  const navigation = useNavigation<TrainingsScreenNavigationProp>();
   const { colors } = useTheme();
   const { translations } = useLanguage();
   
@@ -226,8 +237,25 @@ const TrainingsScreen: React.FC = () => {
         </Paragraph>
       </Card.Content>
       <Card.Actions>
-        <Button onPress={() => openEditModal(item)}>{translations.common.edit}</Button>
-        <Button onPress={() => handleDelete(item)} textColor={colors.error}>
+        <Button 
+          onPress={() => navigation.navigate('TrainingDetails', { training: item })}
+          textColor={colors.buttons.primary}
+          buttonColor={colors.buttons.outlined}
+        >
+          Szczegóły
+        </Button>
+        <Button 
+          onPress={() => openEditModal(item)}
+          textColor={colors.buttons.primary}
+          buttonColor={colors.buttons.outlined}
+        >
+          {translations.common.edit}
+        </Button>
+        <Button 
+          onPress={() => handleDelete(item)} 
+          textColor={colors.error}
+          buttonColor={colors.buttons.outlined}
+        >
           {translations.common.delete}
         </Button>
       </Card.Actions>
@@ -276,6 +304,10 @@ const TrainingsScreen: React.FC = () => {
               onChangeText={setName}
               style={styles.input}
               mode="outlined"
+              textColor={colors.textPrimary}
+              placeholderTextColor={colors.inputs.placeholder}
+              outlineColor={colors.inputs.border}
+              activeOutlineColor={colors.inputs.borderFocused}
             />
             
             <TextInput
@@ -286,6 +318,10 @@ const TrainingsScreen: React.FC = () => {
               mode="outlined"
               multiline
               numberOfLines={3}
+              textColor={colors.textPrimary}
+              placeholderTextColor={colors.inputs.placeholder}
+              outlineColor={colors.inputs.border}
+              activeOutlineColor={colors.inputs.borderFocused}
             />
 
             <TextInput
@@ -296,13 +332,28 @@ const TrainingsScreen: React.FC = () => {
               mode="outlined"
               keyboardType="numeric"
               placeholder="YYYY-MM-DD"
+              textColor={colors.textPrimary}
+              placeholderTextColor={colors.inputs.placeholder}
+              outlineColor={colors.inputs.border}
+              activeOutlineColor={colors.inputs.borderFocused}
             />
 
             <View style={styles.modalActions}>
-              <Button onPress={closeModal} style={styles.modalButton}>
+              <Button 
+                onPress={closeModal} 
+                style={styles.modalButton}
+                textColor={colors.textPrimary}
+                buttonColor={colors.buttons.outlined}
+              >
                 {translations.common.cancel}
               </Button>
-              <Button mode="contained" onPress={handleSave} style={styles.modalButton}>
+              <Button 
+                mode="contained" 
+                onPress={handleSave} 
+                style={styles.modalButton}
+                textColor={colors.textOnPrimary}
+                buttonColor={colors.primary}
+              >
                 {translations.common.save}
               </Button>
             </View>

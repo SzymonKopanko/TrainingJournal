@@ -307,12 +307,20 @@ const ExercisesScreen: React.FC = () => {
         </View>
       </Card.Content>
       <Card.Actions>
-              <Button onPress={() => navigation.navigate('EditExercise', {
-                exercise: item
-              })}>
-                {translations.common.edit}
-              </Button>
-        <Button onPress={() => handleDelete(item)} textColor={colors.error}>
+        <Button 
+          onPress={() => navigation.navigate('EditExercise', {
+            exercise: item
+          })}
+          textColor={colors.buttons.primary}
+          buttonColor={colors.buttons.outlined}
+        >
+          {translations.common.edit}
+        </Button>
+        <Button 
+          onPress={() => handleDelete(item)} 
+          textColor={colors.error}
+          buttonColor={colors.buttons.outlined}
+        >
           {translations.common.delete}
         </Button>
       </Card.Actions>
