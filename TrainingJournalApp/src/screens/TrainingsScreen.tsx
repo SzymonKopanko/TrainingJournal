@@ -245,7 +245,7 @@ const TrainingsScreen: React.FC = () => {
             ))
           ) : (
             <Text style={{ color: colors.textSecondary, fontSize: 12, fontStyle: 'italic' }}>
-              Brak ćwiczeń
+              {translations.trainings.noExercises}
             </Text>
           )}
         </View>
@@ -256,7 +256,7 @@ const TrainingsScreen: React.FC = () => {
           textColor={colors.buttons.primary}
           buttonColor={colors.buttons.outlined}
         >
-          Szczegóły
+          {translations.trainings.details}
         </Button>
         <Button 
           onPress={() => openEditModal(item)}

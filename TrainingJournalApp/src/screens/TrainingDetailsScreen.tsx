@@ -142,7 +142,7 @@ const TrainingDetailsScreen: React.FC = () => {
 
   const handleAddExercise = async () => {
     if (!selectedExercise || !trainingDetails) {
-      Alert.alert(translations.common.error, 'Wybierz ćwiczenie');
+      Alert.alert(translations.common.error, translations.trainings.selectExerciseMessage);
       return;
     }
 
@@ -158,9 +158,9 @@ const TrainingDetailsScreen: React.FC = () => {
   };
 
   const handleRemoveExercise = (trainingExercise: TrainingExercise) => {
-    Alert.alert(
-      'Usuń ćwiczenie',
-      `Czy na pewno chcesz usunąć "${trainingExercise.exercise.name}" z treningu?`,
+      Alert.alert(
+      translations.trainings.removeExercise,
+      `${translations.confirmations.removeExerciseFromTrainingMessage} "${trainingExercise.exercise.name}"?`,
       [
         { text: translations.common.cancel, style: 'cancel' },
         {
@@ -292,9 +292,9 @@ const TrainingDetailsScreen: React.FC = () => {
           ListEmptyComponent={
             <Card style={styles.card}>
               <Card.Content>
-                <Title style={{ color: colors.textPrimary }}>Brak ćwiczeń</Title>
+                <Title style={{ color: colors.textPrimary }}>{translations.trainings.noExercises}</Title>
                 <Paragraph style={{ color: colors.textSecondary }}>
-                  Dodaj ćwiczenia do tego treningu używając przycisku +
+                  {translations.trainings.noExercisesDescription}
                 </Paragraph>
               </Card.Content>
             </Card>
@@ -305,7 +305,7 @@ const TrainingDetailsScreen: React.FC = () => {
           style={styles.fab}
           icon="plus"
           onPress={openAddExerciseModal}
-          label="Dodaj ćwiczenie"
+          label={translations.trainings.addExercise}
         />
 
         <Portal>
@@ -314,7 +314,7 @@ const TrainingDetailsScreen: React.FC = () => {
             onDismiss={closeModal}
             contentContainerStyle={styles.modalContainer}
           >
-            <Title style={{ color: colors.textPrimary }}>Wybierz ćwiczenie</Title>
+            <Title style={{ color: colors.textPrimary }}>{translations.trainings.selectExercise}</Title>
             
             <FlatList
               data={availableExercises.filter(exercise => 
@@ -342,7 +342,7 @@ const TrainingDetailsScreen: React.FC = () => {
                 textColor={colors.textOnPrimary}
                 buttonColor={colors.primary}
               >
-                Dodaj
+                {translations.trainings.add}
               </Button>
             </View>
           </Modal>

@@ -141,7 +141,7 @@ const EditExerciseScreen: React.FC = () => {
 
     const bodyWeightValue = parseFloat(bodyWeightPercentage);
     if (isNaN(bodyWeightValue) || bodyWeightValue < 0) {
-      Alert.alert(translations.common.error, 'Procent masy ciała musi być liczbą większą lub równą 0');
+      Alert.alert(translations.common.error, translations.errors.bodyWeightPercentageInvalid);
       return;
     }
 

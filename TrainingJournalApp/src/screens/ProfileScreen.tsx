@@ -227,7 +227,7 @@ const ProfileScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <Title style={{ color: colors.textPrimary }}>Ładowanie...</Title>
+        <Title style={{ color: colors.textPrimary }}>{translations.common.loading}</Title>
       </View>
     );
   }
@@ -257,12 +257,12 @@ const ProfileScreen: React.FC = () => {
                 )}
               </View>
             ) : (
-              <Paragraph style={{ color: colors.textSecondary }}>Brak danych o wadze</Paragraph>
+              <Paragraph style={{ color: colors.textSecondary }}>{translations.profile.noMeasurements}</Paragraph>
             )}
           </Card.Content>
           <Card.Actions>
             <Button mode="contained" onPress={openAddModal}>
-              Dodaj wagę
+              {translations.profile.addWeight}
             </Button>
           </Card.Actions>
         </Card>
@@ -299,7 +299,7 @@ const ProfileScreen: React.FC = () => {
           <Card.Content>
             <Title style={{ color: colors.textPrimary }}>Ostatnie pomiary</Title>
             {weights.length === 0 ? (
-              <Paragraph style={{ color: colors.textSecondary }}>Brak pomiarów</Paragraph>
+              <Paragraph style={{ color: colors.textSecondary }}>{translations.profile.noMeasurements}</Paragraph>
             ) : (
               weights.slice(0, 5).map((w, index) => (
                 <View key={w.id}>
@@ -326,10 +326,10 @@ const ProfileScreen: React.FC = () => {
           onDismiss={closeModal}
           contentContainerStyle={styles.modalContainer}
         >
-          <Title style={{ color: colors.textPrimary }}>Dodaj wagę</Title>
+          <Title style={{ color: colors.textPrimary }}>{translations.profile.addWeight}</Title>
           
           <TextInput
-            label="Waga (kg)"
+            label={translations.profile.weight}
             value={weight}
             onChangeText={setWeight}
             style={styles.input}
@@ -349,7 +349,7 @@ const ProfileScreen: React.FC = () => {
           />
 
           <TextInput
-            label="Notatki (opcjonalne)"
+            label={translations.profile.notes}
             value={notes}
             onChangeText={setNotes}
             style={styles.input}

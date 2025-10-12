@@ -59,6 +59,13 @@ export const EnglishTranslations = {
     cancel: 'Cancel',
     edit: 'Edit',
     delete: 'Delete',
+    details: 'Details',
+    noExercises: 'No Exercises',
+    noExercisesDescription: 'Add exercises to this training using the + button',
+    selectExercise: 'Select Exercise',
+    add: 'Add',
+    removeExercise: 'Remove Exercise',
+    selectExerciseMessage: 'Select an exercise',
   },
   
   // History screen
@@ -169,6 +176,7 @@ export const EnglishTranslations = {
     muscleGroupRequired: 'At least one muscle group is required',
     weightRequired: 'Weight is required',
     weightInvalid: 'Please enter a valid weight',
+    bodyWeightPercentageInvalid: 'Body weight percentage must be a number greater than or equal to 0',
     savingExercise: 'Error saving exercise',
     savingTraining: 'Error saving training',
     savingWeight: 'Error saving weight',
@@ -185,6 +193,8 @@ export const EnglishTranslations = {
     deleteTrainingMessage: 'Are you sure you want to delete this training? This action cannot be undone.',
     deleteWeight: 'Delete Weight Entry',
     deleteWeightMessage: 'Are you sure you want to delete this weight entry? This action cannot be undone.',
+    removeExerciseFromTraining: 'Remove Exercise from Training',
+    removeExerciseFromTrainingMessage: 'Are you sure you want to remove this exercise from the training?',
     cancelChanges: 'Cancel Changes',
     cancelChangesMessage: 'Are you sure you want to cancel? All unsaved changes will be lost.',
   },
@@ -234,6 +244,8 @@ export const EnglishTranslations = {
     thisWeek: 'This Week',
     thisMonth: 'This Month',
     thisYear: 'This Year',
+    polish: 'Polish',
+    english: 'English',
   },
   
   // Accessibility labels

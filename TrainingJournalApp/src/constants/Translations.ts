@@ -72,6 +72,14 @@ export const PolishTranslations = {
     cancel: 'Anuluj',
     edit: 'Edytuj',
     delete: 'Usuń',
+    details: 'Szczegóły',
+    noExercises: 'Brak ćwiczeń',
+    noExercisesDescription: 'Dodaj ćwiczenia do tego treningu używając przycisku +',
+    addExercise: 'Dodaj ćwiczenie',
+    selectExercise: 'Wybierz ćwiczenie',
+    add: 'Dodaj',
+    removeExercise: 'Usuń ćwiczenie',
+    selectExerciseMessage: 'Wybierz ćwiczenie',
   },
   
   // Ekran historii
@@ -178,6 +186,7 @@ export const PolishTranslations = {
     trainingNameRequired: 'Nazwa treningu jest wymagana',
     weightRequired: 'Waga jest wymagana',
     weightInvalid: 'Wprowadź poprawną wartość wagi',
+    bodyWeightPercentageInvalid: 'Procent masy ciała musi być liczbą większą lub równą 0',
     loadingExercises: 'Nie udało się załadować ćwiczeń',
     loadingTrainings: 'Nie udało się załadować treningów',
     loadingWeights: 'Nie udało się załadować historii wagi',
@@ -198,6 +207,8 @@ export const PolishTranslations = {
     deleteTrainingMessage: 'Czy na pewno chcesz usunąć trening',
     deleteWeight: 'Usuń wpis wagi',
     deleteWeightMessage: 'Czy na pewno chcesz usunąć wpis z',
+    removeExerciseFromTraining: 'Usuń ćwiczenie z treningu',
+    removeExerciseFromTrainingMessage: 'Czy na pewno chcesz usunąć ćwiczenie z treningu',
   },
   
   // Ogólne
@@ -221,6 +232,8 @@ export const PolishTranslations = {
     today: 'Dzisiaj',
     yesterday: 'Wczoraj',
     tomorrow: 'Jutro',
+    polish: 'Polski',
+    english: 'English',
   },
   
   // Formatowanie dat

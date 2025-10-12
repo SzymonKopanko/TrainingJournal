@@ -330,7 +330,7 @@ const ExercisesScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <Title style={{ color: colors.textPrimary }}>Ładowanie...</Title>
+        <Title style={{ color: colors.textPrimary }}>{translations.common.loading}</Title>
       </View>
     );
   }

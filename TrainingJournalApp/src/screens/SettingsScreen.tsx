@@ -128,9 +128,9 @@ const SettingsScreen: React.FC = () => {
   const getLanguageLabel = (lang: Language): string => {
     switch (lang) {
       case 'pl':
-        return 'Polski';
+        return translations.common.polish;
       case 'en':
-        return 'English';
+        return translations.common.english;
       default:
         return lang;
     }
@@ -293,13 +293,13 @@ const SettingsScreen: React.FC = () => {
             <View style={styles.radioItem}>
               <RadioButton value="pl" />
               <Paragraph style={styles.radioLabel}>
-                Polski
+                {translations.common.polish}
               </Paragraph>
             </View>
             <View style={styles.radioItem}>
               <RadioButton value="en" />
               <Paragraph style={styles.radioLabel}>
-                English
+                {translations.common.english}
               </Paragraph>
             </View>
           </RadioButton.Group>
