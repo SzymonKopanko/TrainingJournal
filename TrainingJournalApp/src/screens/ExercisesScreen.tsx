@@ -282,7 +282,6 @@ const ExercisesScreen: React.FC = () => {
   const renderMuscleGroupChip = (muscleGroup: MuscleGroup, role: MuscleGroupRole, index: number) => {
     const roleColor = getMuscleGroupRoleColor(role);
     const translatedMuscleGroup = translateMuscleGroup(muscleGroup);
-    const translatedRole = translateMuscleGroupRole(role);
 
     return (
       <Chip
@@ -290,7 +289,7 @@ const ExercisesScreen: React.FC = () => {
         style={[styles.chip, { backgroundColor: roleColor }]}
         textStyle={{ color: colors.textOnPrimary }}
       >
-        {translatedMuscleGroup} ({translatedRole})
+        {translatedMuscleGroup}
       </Chip>
     );
   };
