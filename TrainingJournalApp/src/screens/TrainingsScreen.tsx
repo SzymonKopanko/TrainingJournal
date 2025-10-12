@@ -5,6 +5,7 @@ import {
   FlatList,
   Alert,
   RefreshControl,
+  Text,
 } from 'react-native';
 import {
   Card,
@@ -58,10 +59,11 @@ const TrainingsScreen: React.FC = () => {
       backgroundColor: colors.cards.background,
       borderColor: colors.cards.border,
     },
-    exerciseCount: {
-      fontSize: 14,
-      color: colors.textSecondary,
-      marginTop: 4,
+    exercisesList: {
+      marginTop: 8,
+    },
+    exerciseItem: {
+      marginBottom: 2,
     },
     dateText: {
       fontSize: 12,
@@ -232,9 +234,21 @@ const TrainingsScreen: React.FC = () => {
         <Paragraph style={styles.dateText}>
           {translations.trainings.trainingDate}: {formatDate(item.date)}
         </Paragraph>
-        <Paragraph style={styles.exerciseCount}>
-          {translations.trainings.exercisesCount}: {item.exercises.length}
-        </Paragraph>
+        <View style={styles.exercisesList}>
+          {item.exercises.length > 0 ? (
+            item.exercises.map((trainingExercise, index) => (
+              <View key={trainingExercise.id} style={styles.exerciseItem}>
+                <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                  {index + 1}. {trainingExercise.exercise.name}
+                </Text>
+              </View>
+            ))
+          ) : (
+            <Text style={{ color: colors.textSecondary, fontSize: 12, fontStyle: 'italic' }}>
+              Brak ćwiczeń
+            </Text>
+          )}
+        </View>
       </Card.Content>
       <Card.Actions>
         <Button 
