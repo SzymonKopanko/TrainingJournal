@@ -26,6 +26,7 @@ export const EnglishTranslations = {
     muscleGroup: 'Muscle Group',
     role: 'Role',
     addMuscleGroup: 'Add Muscle Group',
+    noMuscleGroups: 'No muscle groups selected',
     primaryMuscle: 'Primary',
     secondaryMuscle: 'Secondary',
     save: 'Save',

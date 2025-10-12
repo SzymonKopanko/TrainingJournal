@@ -233,89 +233,95 @@ const EditExerciseScreen: React.FC = () => {
             </Card.Content>
           </Card>
 
-          {/* Grupy mięśniowe */}
+          {/* Wybrane grupy mięśniowe */}
           <Card style={styles.card}>
             <Card.Content>
               <Title style={{ color: colors.textPrimary }}>{translations.exercises.muscleGroups}</Title>
               
               {/* Lista wybranych grup mięśniowych */}
               <View style={{ marginTop: 16 }}>
-                {selectedMuscleGroups.map((mg, index) => (
-                  <View key={index} style={styles.selectedMuscleGroupItem}>
-                    <Text style={{ color: colors.textPrimary }}>
-                      {translateMuscleGroup(mg.muscleGroup)} ({translateMuscleGroupRole(mg.role)})
-                    </Text>
-                    <Button
-                      mode="outlined"
-                      onPress={() => removeMuscleGroup(index)}
-                      style={styles.removeButton}
-                      textColor={colors.error}
-                      buttonColor={colors.buttons.outlined}
-                      compact
-                    >
-                      {translations.common.delete}
-                    </Button>
-                  </View>
-                ))}
+                {selectedMuscleGroups.length > 0 ? (
+                  selectedMuscleGroups.map((mg, index) => (
+                    <View key={index} style={styles.selectedMuscleGroupItem}>
+                      <Text style={{ color: colors.textPrimary }}>
+                        {translateMuscleGroup(mg.muscleGroup)} ({translateMuscleGroupRole(mg.role)})
+                      </Text>
+                      <Button
+                        mode="outlined"
+                        onPress={() => removeMuscleGroup(index)}
+                        style={styles.removeButton}
+                        textColor={colors.error}
+                        buttonColor={colors.buttons.outlined}
+                        compact
+                      >
+                        {translations.common.delete}
+                      </Button>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={{ color: colors.textSecondary, fontStyle: 'italic' }}>
+                    {translations.exercises.noMuscleGroups}
+                  </Text>
+                )}
               </View>
+            </Card.Content>
+          </Card>
 
-              {/* Dodawanie nowej grupy mięśniowej */}
-              {selectedMuscleGroups.length < Object.values(MuscleGroup).length && (
-                <View style={{ marginTop: 16 }}>
-                  <Text style={{ color: colors.textSecondary, marginBottom: 8 }}>
-                    {translations.exercises.addMuscleGroup}:
-                  </Text>
-                  
-                  <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 8 }}>
-                    {translations.exercises.muscleGroup}:
-                  </Text>
-                  <RadioButton.Group 
-                    onValueChange={(value) => setNewMuscleGroup(value as MuscleGroup)} 
-                    value={newMuscleGroup || ''}
-                  >
-                    {Object.values(MuscleGroup)
-                      .filter(group => !selectedMuscleGroups.some(mg => mg.muscleGroup === group))
-                      .map(group => (
-                        <View key={group} style={styles.radioItem}>
-                          <RadioButton value={group} color={colors.primary} />
-                          <Text style={{ color: colors.textPrimary, marginLeft: 8 }}>
-                            {translateMuscleGroup(group)}
-                          </Text>
-                        </View>
-                      ))}
-                  </RadioButton.Group>
-
-                  <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 16, marginBottom: 8 }}>
-                    {translations.exercises.role}:
-                  </Text>
-                  <RadioButton.Group 
-                    onValueChange={(value) => setNewMuscleGroupRole(value as MuscleGroupRole)} 
-                    value={newMuscleGroupRole || ''}
-                  >
-                    {Object.values(MuscleGroupRole).map(role => (
-                      <View key={role} style={styles.radioItem}>
-                        <RadioButton value={role} color={colors.primary} />
+          {/* Dodawanie nowej grupy mięśniowej */}
+          {selectedMuscleGroups.length < Object.values(MuscleGroup).length && (
+            <Card style={styles.card}>
+              <Card.Content>
+                <Title style={{ color: colors.textPrimary }}>{translations.exercises.addMuscleGroup}</Title>
+                
+                <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 8, marginBottom: 8 }}>
+                  {translations.exercises.muscleGroup}:
+                </Text>
+                <RadioButton.Group 
+                  onValueChange={(value) => setNewMuscleGroup(value as MuscleGroup)} 
+                  value={newMuscleGroup || ''}
+                >
+                  {Object.values(MuscleGroup)
+                    .filter(group => !selectedMuscleGroups.some(mg => mg.muscleGroup === group))
+                    .map(group => (
+                      <View key={group} style={styles.radioItem}>
+                        <RadioButton value={group} color={colors.primary} />
                         <Text style={{ color: colors.textPrimary, marginLeft: 8 }}>
-                          {translateMuscleGroupRole(role)}
+                          {translateMuscleGroup(group)}
                         </Text>
                       </View>
                     ))}
-                  </RadioButton.Group>
+                </RadioButton.Group>
 
-                  <Button
-                    mode="contained"
-                    onPress={addMuscleGroup}
-                    style={styles.addButton}
-                    textColor={colors.textOnPrimary}
-                    buttonColor={colors.primary}
-                    disabled={!newMuscleGroup || !newMuscleGroupRole}
-                  >
-                    {translations.exercises.addMuscleGroup}
-                  </Button>
-                </View>
-              )}
-            </Card.Content>
-          </Card>
+                <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 16, marginBottom: 8 }}>
+                  {translations.exercises.role}:
+                </Text>
+                <RadioButton.Group 
+                  onValueChange={(value) => setNewMuscleGroupRole(value as MuscleGroupRole)} 
+                  value={newMuscleGroupRole || ''}
+                >
+                  {Object.values(MuscleGroupRole).map(role => (
+                    <View key={role} style={styles.radioItem}>
+                      <RadioButton value={role} color={colors.primary} />
+                      <Text style={{ color: colors.textPrimary, marginLeft: 8 }}>
+                        {translateMuscleGroupRole(role)}
+                      </Text>
+                    </View>
+                  ))}
+                </RadioButton.Group>
+
+                <Button
+                  mode="contained"
+                  onPress={addMuscleGroup}
+                  style={styles.addButton}
+                  textColor={colors.textOnPrimary}
+                  buttonColor={colors.primary}
+                  disabled={!newMuscleGroup || !newMuscleGroupRole}
+                >
+                  {translations.exercises.addMuscleGroup}
+                </Button>
+              </Card.Content>
+            </Card>
+          )}
         </ScrollView>
 
         {/* Przyciski akcji */}

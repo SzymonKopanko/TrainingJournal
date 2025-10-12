@@ -42,6 +42,7 @@ export const PolishTranslations = {
     muscleGroup: 'Grupa mięśniowa',
     role: 'Rola',
     addMuscleGroup: 'Dodaj grupę mięśniową',
+    noMuscleGroups: 'Brak wybranych grup mięśniowych',
     noExercises: 'Brak ćwiczeń',
     noExercisesDescription: 'Nie masz jeszcze żadnych ćwiczeń.',
     noExercisesAction: 'Dodaj pierwsze ćwiczenie.',
